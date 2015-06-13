@@ -45,13 +45,19 @@ init:
 
 tools: tiled
 
-tiled:
+tiled: tiles-editor
 	cp -r $(TOOLS_FOLDER)/tiled-0.12.3 $(BUILD_FOLDER)/tiled
+	mkdir -p $(BUILD_FOLDER)/tiled/lib
+	ln -sf $(BUILD_FOLDER)/tiled/lib/libtiled.so.1.0.0 $(BUILD_FOLDER)/tiled/lib/libtiled.so
 	cd $(BUILD_FOLDER)/tiled && qmake && make
+	mkdir -p $(BUILD_FOLDER)/tiled/lib/tls/i686/sse2/cmov
+	cp $(BUILD_FOLDER)/tiled/lib/libtiled.so.1.0.0 $(BUILD_FOLDER)/tiled/lib/tls/i686/sse2/cmov/libtiled.so.1
+	ln -sf $(BUILD_FOLDER)/tiled/bin/tiled ./tiles-editor
 
 clean:
 	rm -rf $(BUILD_FOLDER)/*
 	rm -f main
+	rm -f tiles-editor
 
 cleanall: clean
 	rm -rf $(DEP_FOLDER)/*
