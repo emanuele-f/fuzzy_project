@@ -1,10 +1,14 @@
 #include <stdio.h>
+#include <pthread.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
 #include "allegro5/allegro_tiled.h"
-#include "global.h"
+#include "fuzzy.h"
+#include "server.h"
+#include "network.h"
+#include "protocol.h"
 
 #define FPS 30
 #define LEFT_BUTTON 1
@@ -32,16 +36,16 @@ int main(int argc, char *argv[])
     int map_total_width, map_total_height;
 
 	/* Initialization */
-    fuzzy_nz_error(al_init(), "Failed to initialize allegro");
+    fuzzy_iz_error(al_init(), "Failed to initialize allegro");
     fuzzy_load_addon("image", al_init_image_addon());
     fuzzy_load_addon("primitives", al_init_primitives_addon());
     fuzzy_load_addon("keyboard", al_install_keyboard());
     fuzzy_load_addon("mouse", al_install_mouse());
     al_init_font_addon();
 
-	fuzzy_nz_error(timer = al_create_timer(1.0 / FPS), "Cannot create FPS timer");
-    fuzzy_nz_error(evqueue = al_create_event_queue(), "Cannot create event queue");
-	fuzzy_nz_error(display = al_create_display(screen_width, screen_height),
+	fuzzy_iz_error(timer = al_create_timer(1.0 / FPS), "Cannot create FPS timer");
+    fuzzy_iz_error(evqueue = al_create_event_queue(), "Cannot create event queue");
+	fuzzy_iz_error(display = al_create_display(screen_width, screen_height),
       "Cannot initialize display");
     al_set_window_title(display, WINDOW_TITLE);
 
@@ -72,6 +76,16 @@ int main(int argc, char *argv[])
     fps_accum = fps_time = t = 0;
     fps = FPS;
 #endif
+
+    /* Server setup */
+    pthread_t srv_thread;
+    int svsock;
+    char srvkey[FUZZY_SERVERKEY_LEN];
+    FuzzyMessage * sendmsg = fuzzy_message_new();
+
+    fuzzy_server_create(FUZZY_DEFAULT_SERVER_PORT, srvkey);
+    fuzzy_nz_rerror(pthread_create(&srv_thread, NULL, fuzzy_server_loop, NULL));
+    svsock = fuzzy_server_connect(FUZZY_DEFAULT_SERVER_ADDRESS, FUZZY_DEFAULT_SERVER_PORT);
 
 	/* MAIN loop */
     al_start_timer(timer);
@@ -186,6 +200,12 @@ int main(int argc, char *argv[])
     }
 
 	/* Cleanup */
+    void * retval;
+    fuzzy_protocol_server_shutdown(svsock, sendmsg, srvkey);
+    fuzzy_nz_rerror(pthread_join(srv_thread, &retval));
+    fuzzy_server_destroy();
+    fuzzy_message_del(sendmsg);
+
 	al_free_map(map);
     al_destroy_event_queue(evqueue);
 	al_destroy_display(display);

@@ -4,6 +4,7 @@ DEPS
 - cmake
 - allegro5
 - allegro_tiled: xml2 zlib glib2.0
+- libuuid
 
 OPTIONAL TOOLS
 --------------
