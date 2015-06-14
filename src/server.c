@@ -104,7 +104,7 @@ void * fuzzy_server_loop(void * args)
                     /* connection request */
                     sa_size = sizeof(sa_addr);
                     fuzzy_lz_perror(clsock = accept(ServerSocket, (struct sockaddr *)&sa_addr, &sa_size));
-                    fuzzy_debug(fuzzy_sformat("Client %s:%d connected", inet_ntoa(sa_addr.sin_addr), sa_addr.sin_port));
+                    fuzzy_debug(fuzzy_sformat("Client %s:%d connected -> fd %d", inet_ntoa(sa_addr.sin_addr), sa_addr.sin_port, clsock));
 
                     FD_SET(clsock, &active_fd_set);
                 } else {

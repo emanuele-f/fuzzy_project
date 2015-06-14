@@ -4,11 +4,11 @@
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
-#include "allegro5/allegro_tiled.h"
 #include "fuzzy.h"
 #include "server.h"
 #include "network.h"
 #include "protocol.h"
+#include "tiles.h"
 
 #define FPS 30
 #define LEFT_BUTTON 1
@@ -23,14 +23,12 @@ int main(int argc, char *argv[])
 	ALLEGRO_EVENT_QUEUE *evqueue = NULL;
 	ALLEGRO_TIMER *timer = NULL;
 	ALLEGRO_KEYBOARD_STATE keyboard_state;
-	ALLEGRO_MAP *map;
     ALLEGRO_EVENT event;
 
 	bool running = true;
 	bool redraw = true;
-	bool reload = false;
 
-	int map_x = 0, map_y = 0;
+	int map_x = 13*16, map_y = 5*16;
 	int screen_width = WINDOW_WIDTH;
 	int screen_height = WINDOW_HEIGHT;
     int map_total_width, map_total_height;
@@ -56,11 +54,16 @@ int main(int argc, char *argv[])
     al_register_event_source(evqueue, al_get_mouse_event_source());
 
     /* Map load */
-	map = al_open_map(MAP_FOLDER, "level1.tmx");
-	map_total_width = al_get_map_width(map) * al_get_tile_width(map);
-	map_total_height = al_get_map_height(map) * al_get_tile_height(map);
+    tmx_map * tmap;
+    ALLEGRO_BITMAP *bmp_map = NULL;
+    fuzzy_map_setup();
+    tmap = fuzzy_map_load("level000.tmx");
+    bmp_map = fuzzy_map_render(tmap);
+	map_total_width = tmap->width * tmap->tile_width;
+	map_total_height = tmap->height * tmap->tile_height;
+
 	al_clear_to_color(al_map_rgb(0, 0, 0));
-	al_draw_map_region(map, map_x, map_y, screen_width, screen_height, 0, 0, 0);
+    al_draw_bitmap(bmp_map, -map_x, -map_y, 0);
 	al_flip_display();
 
 #if DEBUG
@@ -128,14 +131,12 @@ int main(int argc, char *argv[])
         case ALLEGRO_EVENT_KEY_UP:
             break;
         case ALLEGRO_EVENT_KEY_CHAR:
-            if (event.keyboard.keycode == ALLEGRO_KEY_SPACE)
-                reload = true;
             break;
         case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
             if(event.mouse.button == LEFT_BUTTON) {
                 /* world to tile coords */
-                int tx = (event.mouse.x+map_x) / al_get_tile_width(map);
-                int ty = (event.mouse.y+map_y) / al_get_tile_height(map);
+                int tx = (event.mouse.x+map_x) / tmap->tile_width;
+                int ty = (event.mouse.y+map_y) / tmap->tile_height;
 #ifdef DEBUG
                 printf("SELECT %d %d\n", tx, ty);
 #endif
@@ -155,23 +156,12 @@ int main(int argc, char *argv[])
 
             // Clear the screen
             al_clear_to_color(al_map_rgb(0, 0, 0));
-
-            // If we need to reload, do it
-            if (reload) {
-                int x = map_x;
-                int y = map_y;
-                al_free_map(map);
-                map = al_open_map(MAP_FOLDER, "level1.tmx");
-                map_x = x;
-                map_y = y;
-                reload = false;
-            }
-            al_draw_map_region(map, map_x, map_y, screen_width, screen_height, 0, 0, 0);
+            al_draw_bitmap(bmp_map, -map_x, -map_y, 0);
 
 #ifdef GRID_ON
             /* Draw the grid */
-            int tw = al_get_tile_width(map);
-            int ty = al_get_tile_height(map);
+            int tw = tmap->tile_width;
+            int ty = tmap->tile_height;
             int x, y;
             for (x=(tw-map_x)%tw; x<screen_width; x+=tw)
                 al_draw_line(x, 0, x, screen_height, al_map_rgba(7,7,7,100), 1);
@@ -206,7 +196,7 @@ int main(int argc, char *argv[])
     fuzzy_server_destroy();
     fuzzy_message_del(sendmsg);
 
-	al_free_map(map);
+	tmx_map_free(tmap);
     al_destroy_event_queue(evqueue);
 	al_destroy_display(display);
     al_destroy_timer(timer);

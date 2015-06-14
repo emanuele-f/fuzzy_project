@@ -17,6 +17,7 @@
 #include <string.h>
 #include <libgen.h>
 #include <stdbool.h>
+#include <tmx.h>
 
 #define fuzzy_min(x, y) (x < y ? x : y)
 #define fuzzy_max(x, y) (x > y ? x : y)
@@ -55,6 +56,7 @@ do{\
 #define fuzzy_nz_perror(fnret) fuzzy_nz_error(fnret, fuzzy_strerror(errno))
 #define fuzzy_lz_perror(fnret) fuzzy_lz_error(fnret, fuzzy_strerror(errno))
 #define fuzzy_iz_perror(fnret) fuzzy_iz_error(fnret, fuzzy_strerror(errno))
+#define fuzzy_iz_tmxerror(fnret) fuzzy_iz_error(fnret, tmx_strerr())
 #define fuzzy_nz_rerror(fnret) fuzzy_nz_error(fnret, fuzzy_strerror(fnret))
 #define fuzzy_lz_rerror(fnret) fuzzy_lz_error(fnret, fuzzy_strerror(fnret))
 

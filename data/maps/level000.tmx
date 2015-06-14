@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="70" height="50" tilewidth="16" tileheight="16" backgroundcolor="#037b9c" nextobjectid="11">
+ <tileset firstgid="1" name="Tileset1" tilewidth="16" tileheight="16">
+  <image source="../tilesets/bricks.png" width="64" height="32"/>
+ </tileset>
+ <tileset firstgid="9" name="Tileset2" tilewidth="16" tileheight="16">
+  <image source="../tilesets/backgrounds.png" width="96" height="64"/>
+ </tileset>
+ <layer name="LAYER_BGD" width="70" height="50">
+  <data encoding="base64" compression="zlib">
+   eJzt1bENgDAQBEG7/6YdkqyQQSIxM9IV8Jv8GAAAcG9+sBPo0nRpujRdmi5Nl6ZL06Xp0nRpurz3x5t36NJ0abo0XZouF/+46dJ0abo0XQAAAACAJxbiyQE8
+  </data>
+ </layer>
+ <layer name="LAYER_COL" width="70" height="50">
+  <data encoding="base64" compression="zlib">
+   eJzt18sOhCAQRFHD/3+0YaUxDXTjC4p7EhcjDZEKMLptAAAAyNKL18y8zx+d7yq5jDLuV2rrP7JXrjmo5FJqa/Ut1Srk0tPWqlXL5bx+eveUNe5senOx7tfGnU1kH3nOW8+4M7h7vlhrx9t3ZKV5nX9H/qtXyKVWW2pXzOWv2hFF9krq6KPMygV67yZPIRcb++gQOXdXYs3Xe08Zudg834xWnTrvfMnlXp0K77v+arkAAAAAAAAA2Q4MDQF3
+  </data>
+ </layer>
+ <objectgroup name="LAYER_OBJ">
+  <object id="3" gid="4" x="592" y="256" width="16" height="16"/>
+ </objectgroup>
+ <layer name="LAYER_OVR" width="70" height="50">
+  <data encoding="base64" compression="zlib">
+   eJzt1SEOACAMA8D9APj/Z5nBoFAshLukfp1pBAAAAK9omZ4Z1YdcdNL5x78AQKV9e20xAAAAAAAAALBM9UYA8Q==
+  </data>
+ </layer>
+ <layer name="LAYER_SKY" width="70" height="50">
+  <data encoding="base64" compression="zlib">
+   eJzt1UsKgDAQA9Dew+/9T+mA24BQlSq8B9mXEjKtAQDAfWtlq+yD3/E1U2WuLKMfAvyKTc16NtVfZu4TAG9yfzP39zk6lukY0MOmZjb1mu5kugMAAAAApwMTQQTY
+  </data>
+ </layer>
+</map>
