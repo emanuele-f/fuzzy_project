@@ -36,10 +36,6 @@ static FuzzyMessage * _fuzzy_message_allocate(ssize_t buflen)
     return msg;
 }
 
-/* necessary four "expand to double size" logic */
-#if FUZZY_DEFAULT_MESSAGE_SIZE < 4
-    #error Insufficient message size
-#endif
 static void _fuzzy_message_expand(FuzzyMessage * msg, ssize_t nbuflen)
 {
     ubyte8 * newbuf;
@@ -69,7 +65,7 @@ void fuzzy_message_del(FuzzyMessage * msg)
 void fuzzy_message_push8(FuzzyMessage * msg, ubyte8 data)
 {
     if ((msg->buflen - msg->cursor) < 1)
-        _fuzzy_message_expand(msg, msg->buflen * 2);
+        _fuzzy_message_expand(msg, fuzzy_max(msg->buflen * 2, 1));
 
     msg->buffer[msg->cursor] = data;
     msg->cursor++;
@@ -78,7 +74,7 @@ void fuzzy_message_push8(FuzzyMessage * msg, ubyte8 data)
 void fuzzy_message_push16(FuzzyMessage * msg, ubyte16 data)
 {
     if ((msg->buflen - msg->cursor) < 2)
-        _fuzzy_message_expand(msg, msg->buflen*2);
+        _fuzzy_message_expand(msg, fuzzy_max(msg->buflen*2, 2));
 
     data = htons(data);
     msg->buffer[msg->cursor+0] = data >> 8;
@@ -89,7 +85,7 @@ void fuzzy_message_push16(FuzzyMessage * msg, ubyte16 data)
 void fuzzy_message_push32(FuzzyMessage * msg, ubyte32 data)
 {
     if ((msg->buflen - msg->cursor) < 4)
-        _fuzzy_message_expand(msg, msg->buflen*2);
+        _fuzzy_message_expand(msg, fuzzy_max(msg->buflen*2, 4));
 
     data = htonl(data);
     msg->buffer[msg->cursor+0] = data >> 24;
