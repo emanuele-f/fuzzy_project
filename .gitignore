@@ -1,5 +1,7 @@
 tiles-editor
 main
+*.gcda
+*.gcno
 build/*
 src/deps/*
 src/tools/*

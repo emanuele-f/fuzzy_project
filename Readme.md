@@ -24,6 +24,7 @@ Make rules
 - make init: pulls in the dependencies and tools
 - make: build the game
 - make debug: enables debug info. requires a 'clean' to rebuild
+- make tests: runs the test suite
 - make tools: builds external tools, like the Tiled map editor
 - make clean: removes any built binary
 - make cleanall: removes any built binary, any dependency and any tool
