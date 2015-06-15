@@ -149,7 +149,7 @@ ubyte32 fuzzy_message_pop32(FuzzyMessage * msg)
     data |= msg->buffer[msg->cursor-2] << 8;
     data |= msg->buffer[msg->cursor-3] << 16;
     data |= msg->buffer[msg->cursor-4] << 24;
-    data = ntohs(data);
+    data = ntohl(data);
     msg->cursor-=4;
 
     return data;
