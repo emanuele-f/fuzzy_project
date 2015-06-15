@@ -1,8 +1,10 @@
 # Globals
-BUILD_FOLDER=$(shell readlink -f ./build)
-SRC_FOLDER=$(shell readlink -f ./src)
+ROOT_FOLDER=$(shell readlink -f ./)
+BUILD_FOLDER=$(ROOT_FOLDER)/build
+SRC_FOLDER=$(ROOT_FOLDER)/src
 DEP_FOLDER=$(SRC_FOLDER)/deps
 TOOLS_FOLDER=$(SRC_FOLDER)/tools
+TESTS_FOLDER=$(SRC_FOLDER)/tests
 LIB_FOLDER=$(BUILD_FOLDER)
 
 # Flags and libs
@@ -22,6 +24,7 @@ $(BUILD_FOLDER)/main.o: $(SRC_FOLDER)/main.c $(SRC_FOLDER)/fuzzy.h
 
 OBJ_TARGETS = $(addprefix $(BUILD_FOLDER)/, $(OBJ_TARGETS_))
 $(BUILD_FOLDER)/%.o: $(SRC_FOLDER)/%.c $(SRC_FOLDER)/%.h $(SRC_FOLDER)/fuzzy.h
+	echo $(CFLAGS)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 # Targets
@@ -51,12 +54,19 @@ tiles-editor:
 
 # PHONY targets
 
-.PHONY: default debug init tools clean cleanall
+.PHONY: default debug init tools clean cleanall tests
 
 debug: export CFLAGS += -g -DDEBUG
 debug:
 	@echo "'make clean' before changing build type!"
 	make -e main
+	
+tests: export CFLAGS += -fprofile-arcs -ftest-coverage
+tests: export LDLIBS += -lgcov
+tests:
+	make -e clean
+	make -e debug
+	cd $(TESTS_FOLDER) && make
 
 init:
 	@echo Pulling dependencies...
@@ -75,9 +85,10 @@ init:
 tools: tiles-editor
 
 clean:
-	-find $(BUILD_FOLDER) -type f -print0 | xargs -0 rm 2>/dev/null
+	-find $(BUILD_FOLDER) -maxdepth 1 -type f -print0 | xargs -0 rm 2>/dev/null
 	rm -f main
 	rm -f tiles-editor
+	cd $(TESTS_FOLDER) && make clean
 
 cleanall: clean
 	rm -rf $(BUILD_FOLDER)/*
