@@ -6,9 +6,10 @@ TOOLS_FOLDER=$(SRC_FOLDER)/tools
 LIB_FOLDER=$(BUILD_FOLDER)
 
 # Flags and libs
-CFLAGS=-Wall -I$(DEP_FOLDER)/tmx/src -L$(LIB_FOLDER) -L$(BUILD_FOLDER)/tmx
-STD_LIBS=-pthread -lrt -lm -lz -lglib-2.0 -lxml2 -luuid
-MY_LIBS=$(shell pkg-config --libs allegro-5.0 allegro_image-5.0\
+CFLAGS = -Wall -I$(DEP_FOLDER)/tmx/src
+LDFLAGS = -L$(LIB_FOLDER) -L$(BUILD_FOLDER)/tmx
+LDLIBS = -pthread -lrt -lm -lz -lglib-2.0 -lxml2 -luuid
+MY_LIBS = $(shell pkg-config --libs allegro-5.0 allegro_image-5.0\
   allegro_primitives-5.0 allegro_font-5.0) -ltmx -lfuzzy
 
 default: main
@@ -27,8 +28,8 @@ $(BUILD_FOLDER)/%.o: $(SRC_FOLDER)/%.c $(SRC_FOLDER)/%.h $(SRC_FOLDER)/fuzzy.h
 LIB_FUZZY=$(BUILD_FOLDER)/libfuzzy.a
 LIB_TMX=$(BUILD_FOLDER)/tmx/libtmx.a
 
-main: $(LIB_TMX) $(LIB_FUZZY) $(BUILD_FOLDER)/main.o
-	$(CC) $(CFLAGS) $(STD_LIBS) -o main $(BUILD_FOLDER)/main.o $(MY_LIBS)
+main: $(BUILD_FOLDER)/main.o $(LIB_TMX) $(LIB_FUZZY)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o main $< $(LDLIBS) $(MY_LIBS)
 
 $(LIB_FUZZY): $(OBJ_TARGETS)
 	rm -f $(BUILD_FOLDER)/libfuzzy.a
@@ -74,10 +75,11 @@ init:
 tools: tiles-editor
 
 clean:
-	rm -rf $(BUILD_FOLDER)/*
+	-find $(BUILD_FOLDER) -type f -print0 | xargs -0 rm 2>/dev/null
 	rm -f main
 	rm -f tiles-editor
 
 cleanall: clean
+	rm -rf $(BUILD_FOLDER)/*
 	rm -rf $(DEP_FOLDER)/*
 	rm -rf $(TOOLS_FOLDER)/*
