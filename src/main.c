@@ -49,6 +49,7 @@ int main(int argc, char *argv[])
 	int screen_width = WINDOW_WIDTH;
 	int screen_height = WINDOW_HEIGHT;
     int map_total_width, map_total_height;
+    double t;
 
 	/* Initialization */
     fuzzy_iz_error(al_init(), "Failed to initialize allegro");
@@ -72,22 +73,21 @@ int main(int argc, char *argv[])
 
     /* Map load */
     FuzzyMap * map;
-    ALLEGRO_BITMAP *bmp_map = NULL;
     fuzzy_map_setup();
     map = fuzzy_map_load("level000.tmx");
-    bmp_map = fuzzy_map_render(map);
+    fuzzy_map_update(map, 0);
 	map_total_width = map->width * map->tile_width;
 	map_total_height = map->height * map->tile_height;
 
 	al_clear_to_color(al_map_rgb(0, 0, 0));
-    al_draw_bitmap(bmp_map, -map_x, -map_y, 0);
+    al_draw_bitmap(map->bitmap, -map_x, -map_y, 0);
 	al_flip_display();
 
 #if DEBUG
 	ALLEGRO_BITMAP *icon;
     ALLEGRO_FONT *font;
     int fps, fps_accum;
-    double fps_time, t;
+    double fps_time;
 
     font = al_load_font(fuzzy_res(FONT_FOLDER, "fixed_font.tga"), 0, 0);
     icon = al_load_bitmap(fuzzy_res(PICTURE_FOLDER, "icon.tga"));
@@ -167,13 +167,12 @@ int main(int argc, char *argv[])
         }
 
         if (redraw && al_is_event_queue_empty(evqueue)) {
-#ifdef DEBUG
             t = al_get_time();
-#endif
+            fuzzy_map_update(map, t);
 
             // Clear the screen
             al_clear_to_color(al_map_rgb(0, 0, 0));
-            al_draw_bitmap(bmp_map, -map_x, -map_y, 0);
+            al_draw_bitmap(map->bitmap, -map_x, -map_y, 0);
 
 #ifdef GRID_ON
             /* Draw the grid */

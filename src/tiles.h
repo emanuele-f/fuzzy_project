@@ -37,9 +37,11 @@ typedef enum FUZZY_LAYERS {
 
 typedef struct FuzzyMap {
     tmx_map * map;                          /* the actual map */
+    ALLEGRO_BITMAP * bitmap;                /* rendered image */
     struct _AnimatedLayer ** elayers;       /* the engine working data */
     struct _AnimationGroup * groups;        /* animation groups */
-    ulong nlayers;                          /* number of layers */
+    uint nlayers;                          /* number of layers */
+    double curtime;
 
     /* map information duplication */
     ulong width;
@@ -52,6 +54,7 @@ typedef struct FuzzyMap {
 void fuzzy_map_setup();
 FuzzyMap * fuzzy_map_load(char * mapfile);
 void fuzzy_map_unload(FuzzyMap * map);
-ALLEGRO_BITMAP * fuzzy_map_render(FuzzyMap * map);
+void fuzzy_map_render(FuzzyMap * map, ALLEGRO_BITMAP * target);
+void fuzzy_map_update(FuzzyMap * map, double time);
 
 #endif
