@@ -5,6 +5,20 @@
  </tileset>
  <tileset firstgid="9" name="Tileset2" tilewidth="16" tileheight="16">
   <image source="../tilesets/backgrounds.png" width="96" height="64"/>
+  <tile id="6">
+   <properties>
+    <property name="f" value="0"/>
+    <property name="g" value="0"/>
+    <property name="t" value="500"/>
+   </properties>
+  </tile>
+  <tile id="7">
+   <properties>
+    <property name="f" value="1"/>
+    <property name="g" value="0"/>
+    <property name="t" value="500"/>
+   </properties>
+  </tile>
  </tileset>
  <layer name="LAYER_BGD" width="70" height="50">
   <data encoding="base64" compression="zlib">

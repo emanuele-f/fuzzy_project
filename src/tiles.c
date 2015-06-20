@@ -25,6 +25,7 @@
  *  LAYER_SKY: up above
  */
 
+#include <stdbool.h>
 #include "fuzzy.h"
 #include "tiles.h"
 
@@ -35,6 +36,307 @@ static char LayerName[][10] = {
     "LAYER_OVR",
     "LAYER_SKY"
 };
+
+typedef unsigned long ulong;
+
+/* rappresents a single animation frame */
+struct _AnimationFrame {
+    ulong fid;                              /* frame id within the animation group */
+    ulong transtime;                        /* time before next frame */
+    tmx_tileset * ts;                       /* tileset containing the frame image */
+    uint tx;                                /* x offset within tileset */
+    uint ty;                                /* y offset within tileset */
+    struct _AnimationFrame * next;          /* next frame in group */
+};
+
+/* holds a group of frames */
+struct _AnimationGroup {
+    ulong id;                               /* id of the animation group */
+    struct _AnimationFrame * frames;        /* list of animation frames */
+    struct _AnimationGroup * next;
+};
+
+/* an animated tile */
+struct _AnimatedObject {
+    ulong x;                                /* x position in layer */
+    ulong y;                                /* y position in layer */
+    ulong grp;                              /* the group id used */
+    ulong curframe;                         /* fid of the current frame */
+    ulong curtime;                          /* tracks time */
+    struct _AnimatedObject * next;
+};
+
+/* holds layer information in map engine */
+struct _AnimatedLayer {
+    ulong lid;                              /* layer ID */
+    struct _AnimatedObject * sprites;       /* list of animated tiles in layer */
+    ALLEGRO_BITMAP * bitmap;                /* cached bitmap */
+};
+
+static struct _AnimatedLayer * _new_map_layer(ulong id)
+{
+    struct _AnimatedLayer * elayer;
+
+    elayer = (struct _AnimatedLayer *) malloc(sizeof(struct _AnimatedLayer));
+    fuzzy_iz_perror(elayer);
+
+    elayer->lid = id;
+    elayer->sprites = NULL;
+    elayer->bitmap = NULL;
+
+    return elayer;
+}
+
+static void _unload_group_frames(struct _AnimationFrame * frames)
+{
+    struct _AnimationFrame *d, *frame;
+
+    frame = frames;
+    while(frame) {
+        d = frame;
+        frame = frame->next;
+        free(d);
+    }
+}
+
+static void _unload_animation_groups(struct _AnimationGroup * groups)
+{
+    struct _AnimationGroup *d, *group;
+
+    group = groups;
+    while (group) {
+        _unload_group_frames(group->frames);
+        d = group;
+        group = group->next;
+        free(d);
+    }
+}
+
+static void _unload_map_layer(struct _AnimatedLayer * elayer)
+{
+    struct _AnimatedObject *sprite, *d;
+
+    sprite = elayer->sprites;
+    while (sprite) {
+        d = sprite;
+        sprite = sprite->next;
+        free(d);
+    }
+}
+
+static void _unload_map_layers(FuzzyMap * fmap) {
+    ulong i;
+
+    for (i=0; i < fmap->nlayers; i++) {
+        _unload_map_layer(fmap->elayers[i]);
+        free(fmap->elayers[i]);
+    }
+    _unload_animation_groups(fmap->groups);
+
+    free(fmap->elayers);
+}
+
+/* Get a tile property. Null if not found */
+static char * _get_tile_property(tmx_tile * tile, char * prop)
+{
+    tmx_property * properties = tile->properties;
+
+    while (properties) {
+        if(strcmp(prop, properties->name) == 0)
+            return properties->value;
+        properties = properties->next;
+    }
+    return NULL;
+}
+
+/* get it or die */
+static ulong _get_tile_ulong_property(tmx_tile * tile, char * prop)
+{
+    char * val;
+
+    fuzzy_iz_error(val = _get_tile_property(tile, prop),
+      fuzzy_sformat("Missing '%s' mandatory property", prop)
+    );
+
+    return atol(val);
+}
+
+/* compute a gid for the given position */
+static uint _fuzzy_layer_gid(tmx_map *map, tmx_layer *layer, ulong x, ulong y)
+{
+    return layer->content.gids[(y*map->width)+x];
+}
+
+static void _load_group_frames(struct _AnimationGroup * group, tmx_tileset * ts)
+{
+    struct _AnimationFrame *frame, *last;
+    tmx_tile * tile;
+    char * grp_s;
+    ulong grp, fid, msec;
+
+    printf("Loading frames for group %ld\n", group->id);
+
+    last = NULL;
+    tile = ts->tiles;
+    while(tile) {
+        grp_s = _get_tile_property(tile, FUZZY_TILEPROP_ANIMATION_GROUP);
+        if (grp_s) {
+            grp = atol(grp_s);
+            if (grp == group->id) {
+                fid = _get_tile_ulong_property(tile, FUZZY_TILEPROP_FRAME_ID);
+                msec = _get_tile_ulong_property(tile, FUZZY_TILEPROP_TRANSITION_TIME);
+
+                /* compute tile offset in tileset */
+                uint id = tile->id;
+                uint ts_w = ts->image->width  - 2 * (ts->margin) + ts->spacing;
+				uint tiles_x_count = ts_w / (ts->tile_width  + ts->spacing);
+                uint tx = id % tiles_x_count;
+                uint ty = id / tiles_x_count;
+
+                frame = (struct _AnimationFrame *) malloc(sizeof(struct _AnimationFrame));
+                fuzzy_iz_perror(frame);
+                frame->fid = fid;
+                frame->ts = ts;
+                frame->tx = ts->margin + (tx * ts->tile_width)  + (tx * ts->spacing);
+                frame->ty = ts->margin + (ty * ts->tile_height) + (ty * ts->spacing);
+                frame->transtime = msec;
+                frame->next = NULL;
+
+                /* add to frame list */
+                if (last != NULL)
+                    last->next = frame;
+                else
+                    group->frames = frame;
+                last = frame;
+            }
+        }
+        tile = tile->next;
+    }
+}
+
+/* Ensure arg groups contains the needed group.
+    If it was not already loaded, load it.
+
+    Returns the group
+ */
+static struct _AnimationGroup * _load_animation_group(FuzzyMap * fmap, ulong grp, tmx_tileset * ts)
+{
+    struct _AnimationGroup *group, *last;
+
+    /* look for existing group */
+    group = fmap->groups;
+    while (group) {
+        if (group->id == grp)
+            break;
+        group = group->next;
+    }
+
+    if (group == NULL) {
+        /* load a new one */
+        group = (struct _AnimationGroup *) malloc(sizeof(struct _AnimationGroup));
+        fuzzy_iz_perror(group);
+        group->id = grp;
+        group->frames = NULL;
+        group->next = NULL;
+        _load_group_frames(group, ts);
+
+        /* add to list */
+        if (fmap->groups == NULL) {
+            fmap->groups = group;
+        } else {
+            last = fmap->groups;
+            while (last->next != NULL)
+                last = last->next;
+            last->next = group;
+        }
+    }
+
+    return group;
+}
+
+/* analize a layer to find animated objects */
+static struct _AnimatedLayer * _discover_layer_objects(FuzzyMap * fmap, tmx_layer *layer, ulong lid)
+{
+    ulong i, j;
+    struct _AnimatedLayer * elayer;
+    struct _AnimatedObject *obj, *last;
+    tmx_tile * tile;
+    tmx_tileset * ts;
+    char * grp_s;
+    ulong grp;
+    tmx_map * map = fmap->map;
+    uint _x, _y;
+
+    elayer = _new_map_layer(lid);
+    last = NULL;
+
+    for (i=0; i<map->height; i++) {
+		for (j=0; j<map->width; j++) {
+            uint gid = _fuzzy_layer_gid(map, layer, j, i);
+            tile = tmx_get_tile(map, gid);
+            if (tile) {
+                grp_s = _get_tile_property(tile, FUZZY_TILEPROP_ANIMATION_GROUP);
+                if (grp_s) {
+                    grp = atol(grp_s);
+                    printf("Tile: tid=%d group=%ld @%d,%d\n", tile->id, grp, j, i);
+
+                    fuzzy_iz_error(ts = tmx_get_tileset(map, gid, &_x, &_y), "Tileset cannot be Null here!");
+                    _load_animation_group(fmap, grp, ts);
+
+                    /* create a sprite descriptor */
+                    obj = (struct _AnimatedObject *) malloc(sizeof(struct _AnimatedObject));
+                    fuzzy_iz_perror(obj);
+                    obj->x = j;
+                    obj->y = i;
+                    obj->grp = grp;
+                    obj->curframe = 0;
+                    obj->curtime = 0;
+                    obj->next = NULL;
+
+                    /* add to layer list */
+                    if (last != NULL)
+                        last->next = obj;
+                    else
+                        elayer->sprites = obj;
+                    last = obj;
+                }
+            }
+        }
+    }
+
+    return elayer;
+}
+
+static void _fuzzy_map_analize(FuzzyMap * fmap)
+{
+    tmx_layer * layer;
+    struct _AnimatedLayer ** elayers;
+    ulong i, nlayers;
+
+    /* count layers number */
+    i = 0;
+    layer = fmap->map->ly_head;
+    while (layer) {
+        i++;
+        layer = layer->next;
+    }
+    nlayers = i;
+
+    /* allocate structure */
+    elayers = (struct _AnimatedLayer **) malloc(sizeof(struct _AnimatedLayer **) * nlayers);
+    fuzzy_iz_perror(elayers);
+
+    /* fill engine layers */
+    layer = fmap->map->ly_head;
+    for (i=0; i<nlayers; i++) {
+        elayers[i] = _discover_layer_objects(fmap, layer, i);
+        layer = layer->next;
+    }
+
+    /* fill input structure */
+    fmap->nlayers = nlayers;
+    fmap->elayers = elayers;
+}
 
 /* FROM SAMPLE */
 #include <stdio.h>
@@ -142,8 +444,9 @@ static void draw_layer(tmx_map *map, tmx_layer *layer) {
 /*
 	Render map
 */
-ALLEGRO_BITMAP* fuzzy_map_render(tmx_map *map) {
+ALLEGRO_BITMAP* fuzzy_map_render(FuzzyMap *fmap) {
 	ALLEGRO_BITMAP *res = NULL;
+    tmx_map * map = fmap->map;
 	tmx_layer *layers = map->ly_head;
 	unsigned long w, h;
 
@@ -188,15 +491,33 @@ void fuzzy_map_setup()
 	tmx_img_free_func = (void (*)(void*))al_destroy_bitmap;
 }
 
-tmx_map * fuzzy_map_load(char * mapfile)
+FuzzyMap * fuzzy_map_load(char * mapfile)
 {
     tmx_map * map;
+    FuzzyMap * fmap;
     char * fname;
 
     fname = fuzzy_sformat("%s%s%s", MAP_FOLDER, _DSEP, mapfile);
     fuzzy_iz_tmxerror(map = tmx_load(fname));
 
-    return map;
+    fuzzy_iz_perror(fmap = (FuzzyMap *) malloc(sizeof(FuzzyMap)));
+    fmap->map = map;
+    fmap->elayers = NULL;
+    fmap->groups = NULL;
+    fmap->width = map->width;
+    fmap->height = map->height;
+    fmap->tile_width = map->tile_width;
+    fmap->tile_height = map->tile_height;
+
+    _fuzzy_map_analize(fmap);
+    return fmap;
+}
+
+void fuzzy_map_unload(FuzzyMap * fmap)
+{
+    _unload_map_layers(fmap);
+    tmx_map_free(fmap->map);
+    free(fmap);
 }
 
 /* true if maps has correct structure */

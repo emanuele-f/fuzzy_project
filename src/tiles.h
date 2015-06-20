@@ -23,6 +23,10 @@
 
 #define FUZZY_LAYERS_N 5
 
+#define FUZZY_TILEPROP_ANIMATION_GROUP "g"
+#define FUZZY_TILEPROP_FRAME_ID "f"
+#define FUZZY_TILEPROP_TRANSITION_TIME "t"
+
 typedef enum FUZZY_LAYERS {
     FUZZY_LAYER_SUB = 0,
     FUZZY_LAYER_BGD = 1,
@@ -31,9 +35,23 @@ typedef enum FUZZY_LAYERS {
     FUZZY_LAYER_SKY = 4
 } FUZZY_LAYERS;
 
+typedef struct FuzzyMap {
+    tmx_map * map;                          /* the actual map */
+    struct _AnimatedLayer ** elayers;       /* the engine working data */
+    struct _AnimationGroup * groups;        /* animation groups */
+    ulong nlayers;                          /* number of layers */
+
+    /* map information duplication */
+    ulong width;
+    ulong height;
+    ulong tile_width;
+    ulong tile_height;
+} FuzzyMap;
+
 //~ bool fuzzy_map_validate(ALLEGRO_MAP * map);
 void fuzzy_map_setup();
-tmx_map * fuzzy_map_load(char * mapfile);
-ALLEGRO_BITMAP * fuzzy_map_render(tmx_map * map);
+FuzzyMap * fuzzy_map_load(char * mapfile);
+void fuzzy_map_unload(FuzzyMap * map);
+ALLEGRO_BITMAP * fuzzy_map_render(FuzzyMap * map);
 
 #endif

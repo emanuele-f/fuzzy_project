@@ -12,7 +12,7 @@ CFLAGS = -Wall -I$(DEP_FOLDER)/tmx/src
 LDFLAGS = -L$(LIB_FOLDER) -L$(BUILD_FOLDER)/tmx
 LDLIBS = -pthread -lrt -lm -lz -lglib-2.0 -lxml2 -luuid
 MY_LIBS = $(shell pkg-config --libs allegro-5.0 allegro_image-5.0\
-  allegro_primitives-5.0 allegro_font-5.0) -ltmx -lfuzzy
+  allegro_primitives-5.0 allegro_font-5.0) -lfuzzy -ltmx
 
 default: main
 
@@ -60,7 +60,7 @@ debug: export CFLAGS += -g -DDEBUG
 debug:
 	@echo "'make clean' before changing build type!"
 	make -e main
-	
+
 tests: export CFLAGS += -fprofile-arcs -ftest-coverage
 tests: export LDLIBS += -lgcov
 tests:

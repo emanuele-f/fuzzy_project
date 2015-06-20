@@ -71,13 +71,13 @@ int main(int argc, char *argv[])
     al_register_event_source(evqueue, al_get_mouse_event_source());
 
     /* Map load */
-    tmx_map * tmap;
+    FuzzyMap * map;
     ALLEGRO_BITMAP *bmp_map = NULL;
     fuzzy_map_setup();
-    tmap = fuzzy_map_load("level000.tmx");
-    bmp_map = fuzzy_map_render(tmap);
-	map_total_width = tmap->width * tmap->tile_width;
-	map_total_height = tmap->height * tmap->tile_height;
+    map = fuzzy_map_load("level000.tmx");
+    bmp_map = fuzzy_map_render(map);
+	map_total_width = map->width * map->tile_width;
+	map_total_height = map->height * map->tile_height;
 
 	al_clear_to_color(al_map_rgb(0, 0, 0));
     al_draw_bitmap(bmp_map, -map_x, -map_y, 0);
@@ -152,8 +152,8 @@ int main(int argc, char *argv[])
         case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
             if(event.mouse.button == LEFT_BUTTON) {
                 /* world to tile coords */
-                int tx = (event.mouse.x+map_x) / tmap->tile_width;
-                int ty = (event.mouse.y+map_y) / tmap->tile_height;
+                int tx = (event.mouse.x+map_x) / map->tile_width;
+                int ty = (event.mouse.y+map_y) / map->tile_height;
 #ifdef DEBUG
                 printf("SELECT %d %d\n", tx, ty);
 #endif
@@ -177,8 +177,8 @@ int main(int argc, char *argv[])
 
 #ifdef GRID_ON
             /* Draw the grid */
-            int tw = tmap->tile_width;
-            int ty = tmap->tile_height;
+            int tw = map->tile_width;
+            int ty = map->tile_height;
             int x, y;
             for (x=(tw-map_x)%tw; x<screen_width; x+=tw)
                 al_draw_line(x, 0, x, screen_height, al_map_rgba(7,7,7,100), 1);
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
     fuzzy_server_destroy();
     fuzzy_message_del(sendmsg);
 
-	tmx_map_free(tmap);
+	fuzzy_map_unload(map);
     al_destroy_event_queue(evqueue);
 	al_destroy_display(display);
     al_destroy_timer(timer);
