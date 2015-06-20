@@ -23,6 +23,7 @@
 
 #define FUZZY_LAYERS_N 5
 
+/* Map properties names */
 #define FUZZY_TILEPROP_ANIMATION_GROUP "g"
 #define FUZZY_TILEPROP_FRAME_ID "f"
 #define FUZZY_TILEPROP_TRANSITION_TIME "t"
@@ -35,12 +36,13 @@ typedef enum FUZZY_LAYERS {
     FUZZY_LAYER_SKY = 4
 } FUZZY_LAYERS;
 
+/** Holds map status and data. */
 typedef struct FuzzyMap {
-    tmx_map * map;                          /* the actual map */
-    ALLEGRO_BITMAP * bitmap;                /* rendered image */
-    struct _AnimatedLayer ** elayers;       /* the engine working data */
+    tmx_map * map;                          /* the map data */
+    ALLEGRO_BITMAP * bitmap;                /* rendered map */
+    struct _AnimatedLayer ** elayers;       /* animation layers */
     struct _AnimationGroup * groups;        /* animation groups */
-    uint nlayers;                          /* number of layers */
+    uint nlayers;                           /* number of layers */
     double curtime;
 
     /* map information duplication */
@@ -50,11 +52,39 @@ typedef struct FuzzyMap {
     ulong tile_height;
 } FuzzyMap;
 
-//~ bool fuzzy_map_validate(ALLEGRO_MAP * map);
+/** Initialize map module. */
 void fuzzy_map_setup();
+
+/** Load a map from a file.
+
+    \param mapfile data source
+
+    \retval a loaded map
+
+    \note on error, program exits with error
+ */
 FuzzyMap * fuzzy_map_load(char * mapfile);
+
+/** Releases map resources.
+
+    \param map to release
+ */
 void fuzzy_map_unload(FuzzyMap * map);
+
+/** Render the current map status to a bitmap.
+
+    \param map to render
+    \param target to blit
+ */
 void fuzzy_map_render(FuzzyMap * map, ALLEGRO_BITMAP * target);
+
+/** Updates map internal animation counters and renders internal map.
+
+    \param map to update
+    \param time current time in seconds
+
+    \note The rendered map can be accessed through the map->bitmap field
+ */
 void fuzzy_map_update(FuzzyMap * map, double time);
 
 #endif
