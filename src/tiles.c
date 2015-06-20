@@ -427,14 +427,13 @@ static struct _AnimatedLayer * _new_map_layer(ulong id)
 /** Load frames information for an animation group. */
 static void _load_group_frames(struct _AnimationGroup * group, tmx_tileset * ts)
 {
-    struct _AnimationFrame *frame, *last;
+    struct _AnimationFrame *frame, *cur;
     tmx_tile * tile;
     char * grp_s;
     ulong grp, fid, msec;
 
     fuzzy_debug(fuzzy_sformat("Loading animation group %ld", group->id));
 
-    last = NULL;
     tile = ts->tiles;
     while(tile) {
         grp_s = _get_tile_property(tile, FUZZY_TILEPROP_ANIMATION_GROUP);
@@ -460,11 +459,21 @@ static void _load_group_frames(struct _AnimationGroup * group, tmx_tileset * ts)
                 frame->next = NULL;
 
                 /* add to frame list */
-                if (last != NULL)
-                    last->next = frame;
-                else
+                if (group->frames == NULL)
                     group->frames = frame;
-                last = frame;
+                else {
+                    /* find a place */
+                    cur = group->frames;
+                    while (cur->next != NULL && cur->fid <= fid) {
+                        if (cur->fid == fid)
+                            fuzzy_critical(fuzzy_sformat("Frame '%d' for group #%d already loaded!",
+                                fid, grp)
+                            );
+                        cur = cur->next;
+                    }
+                    frame->next = cur->next;
+                    cur->next = frame;
+                }
             }
         }
         tile = tile->next;
