@@ -48,7 +48,6 @@ int main(int argc, char *argv[])
 	int map_x = 13*16, map_y = 5*16;
 	int screen_width = WINDOW_WIDTH;
 	int screen_height = WINDOW_HEIGHT;
-    int map_total_width, map_total_height;
     double t;
 
 	/* Initialization */
@@ -76,8 +75,6 @@ int main(int argc, char *argv[])
     fuzzy_map_setup();
     map = fuzzy_map_load("level000.tmx");
     fuzzy_map_update(map, 0);
-	map_total_width = map->width * map->tile_width;
-	map_total_height = map->height * map->tile_height;
 
 	al_clear_to_color(al_map_rgb(0, 0, 0));
     al_draw_bitmap(map->bitmap, -map_x, -map_y, 0);
@@ -119,8 +116,8 @@ int main(int argc, char *argv[])
             al_get_keyboard_state(&keyboard_state);
             if (al_key_down(&keyboard_state, ALLEGRO_KEY_RIGHT)) {
                 map_x += 5;
-                if (map_x > (map_total_width - screen_width))
-                    map_x = map_total_width - screen_width;
+                if (map_x > (map->tot_width - screen_width))
+                    map_x = map->tot_width - screen_width;
             }
             else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LEFT)) {
                 map_x -= 5;
@@ -134,8 +131,8 @@ int main(int argc, char *argv[])
             }
             else if (al_key_down(&keyboard_state, ALLEGRO_KEY_DOWN)) {
                 map_y += 5;
-                if (map_y > (map_total_height - screen_height))
-                    map_y = map_total_height - screen_height;
+                if (map_y > (map->tot_height - screen_height))
+                    map_y = map->tot_height - screen_height;
             }
 
             redraw = true;

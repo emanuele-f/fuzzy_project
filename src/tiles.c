@@ -76,6 +76,7 @@ struct _AnimatedSprite {
 struct _AnimatedLayer {
     ulong lid;                              /* layer ID */
     struct _AnimatedSprite * sprites;       /* list of animated tiles in layer */
+    ALLEGRO_BITMAP * bitmap;                /* cached static bitmap for layer */
 };
 
 /*-------------------------- UTILITY METHODS -----------------------------*/
@@ -88,12 +89,6 @@ static int _gid_extract_flags(unsigned int gid) {
 	if (gid & TMX_FLIPPED_VERTICALLY)   res |= ALLEGRO_FLIP_VERTICAL;
 	/* FIXME allegro has no diagonal flip */
 	return res;
-}
-
-/** Removes any flags from the gid */
-static int gid_clear_flags(unsigned int gid)
-{
-	return gid & TMX_FLIP_BITS_REMOVAL;
 }
 
 /** Find a property of the tile
@@ -134,21 +129,24 @@ static uint _get_gid_in_layer(tmx_map *map, tmx_layer *layer, ulong x, ulong y)
     return layer->content.gids[(y*map->width)+x];
 }
 
+static struct _AnimatedLayer * _get_animation_layer(FuzzyMap * fmap, uint lid)
+{
+    if (lid >= fmap->nlayers)
+        fuzzy_critical(fuzzy_sformat("Layer '%d' out of available layers (%d)", lid, fmap->nlayers));
+
+    return fmap->elayers[lid];
+}
+
 /** Find an animated sprite at coords in layer.
 
     \retval sprite on success
     \retval NULL on not found
  */
-static struct _AnimatedSprite * _get_tile_animation(FuzzyMap * fmap, uint lid, ulong x, ulong y)
+static struct _AnimatedSprite * _get_tile_animation(struct _AnimatedLayer * elayer, ulong x, ulong y)
 {
     struct _AnimatedSprite * sprite;
 
-    if (lid >= fmap->nlayers) {
-        fuzzy_error(fuzzy_sformat("Layer '%d' out of available layers (%d)", lid, fmap->nlayers));
-        return NULL;
-    }
-
-    sprite = fmap->elayers[lid]->sprites;
+    sprite = elayer->sprites;
     while(sprite) {
         if (sprite->x == x && sprite->y==y)
             return sprite;
@@ -283,19 +281,16 @@ static void _draw_objects(tmx_object *head, ALLEGRO_COLOR color)
 	}
 }
 
-/** Renders a layer on the current target bitmap. */
-static void _draw_layer(FuzzyMap *fmap, tmx_layer *layer, uint lid) {
-	unsigned long i, j;
-	unsigned int x, y, w, h, flags;
+/** Renders a static layer onto the current target bitmap. */
+static void _render_layer(FuzzyMap *fmap, tmx_layer *layer, struct _AnimatedLayer * elayer) {
+	ulong i, j;
+	uint x, y, w, h, flags;
 	float op;
 	tmx_tileset *ts;
 	ALLEGRO_BITMAP *tileset;
     tmx_map * map = fmap->map;
-    struct _AnimatedSprite * sprite;
-    struct _AnimationFrame * frame;
-    uint tx, ty;
 
-	op = layer->opacity;
+    op = layer->opacity;
 
 	for (i=0; i<map->height; i++) {
 		for (j=0; j<map->width; j++) {
@@ -303,25 +298,42 @@ static void _draw_layer(FuzzyMap *fmap, tmx_layer *layer, uint lid) {
 			if (ts) {
                 w = ts->tile_width; h = ts->tile_height;
                 tileset = (ALLEGRO_BITMAP*)ts->image->resource_image;
-                flags = _gid_extract_flags(layer->content.gids[(i*map->width)+j]);
+                flags = _gid_extract_flags(_get_gid_in_layer(map, layer, j, i));
 
-                sprite = _get_tile_animation(fmap, lid, j, i);
-                if (! sprite) {
+                if (! _get_tile_animation(elayer, j, i)) {
                     /* standard tile*/
-                    tx = x;
-                    ty = y;
-                } else {
-                    /* animated tile */
-                    frame = _get_sprite_frame(fmap, sprite, _get_sprite_group(fmap, sprite));
-                    tx = frame->tx;
-                    ty = frame->ty;
+                    al_draw_tinted_bitmap_region(tileset, al_map_rgba_f(op, op, op, op),
+                      x, y, w, h, j*ts->tile_width, i*ts->tile_height, flags);
                 }
-
-                al_draw_tinted_bitmap_region(tileset, al_map_rgba_f(op, op, op, op),
-                  tx, ty, w, h, j*ts->tile_width, i*ts->tile_height, flags);
 			}
 		}
 	}
+}
+
+static void _render_sprites(FuzzyMap *fmap, tmx_layer * layer, struct _AnimatedLayer * elayer)
+{
+    struct _AnimatedSprite * sprite;
+    struct _AnimationFrame * frame;
+    tmx_tileset *ts;
+    uint x, y, w, h, flags;
+    ALLEGRO_BITMAP * tileset;
+    float op;
+
+    op = layer->opacity;
+
+    sprite = elayer->sprites;
+    while(sprite) {
+        frame = _get_sprite_frame(fmap, sprite, _get_sprite_group(fmap, sprite));
+        ts = tmx_get_tileset(fmap->map, _get_gid_in_layer(fmap->map, layer, sprite->x, sprite->y), &x, &y);
+
+        w = ts->tile_width; h = ts->tile_height;
+        tileset = (ALLEGRO_BITMAP*)ts->image->resource_image;
+        flags = _gid_extract_flags(_get_gid_in_layer(fmap->map, layer, sprite->x, sprite->y));
+        al_draw_tinted_bitmap_region(tileset, al_map_rgba_f(op, op, op, op),
+          frame->tx, frame->ty, w, h, sprite->x*ts->tile_width, sprite->y*ts->tile_height, flags);
+
+        sprite = sprite->next;
+    }
 }
 
 void fuzzy_map_update(FuzzyMap * fmap, double time)
@@ -368,6 +380,7 @@ void fuzzy_map_update(FuzzyMap * fmap, double time)
 }
 
 void fuzzy_map_render(FuzzyMap *fmap, ALLEGRO_BITMAP * target) {
+    struct _AnimatedLayer * elayer;
     tmx_map * map = fmap->map;
 	tmx_layer *layers = map->ly_head;
     uint i;
@@ -375,7 +388,7 @@ void fuzzy_map_render(FuzzyMap *fmap, ALLEGRO_BITMAP * target) {
 	if (map->orient != O_ORT)
         fuzzy_critical("Only orthogonal orientation currently supported");
 
-	al_set_target_bitmap(target);
+    al_set_target_bitmap(target);
 	al_clear_to_color(int_to_al_color(map->backgroundcolor));
 
     i=0;
@@ -392,7 +405,9 @@ void fuzzy_map_render(FuzzyMap *fmap, ALLEGRO_BITMAP * target) {
 				}
 				al_draw_bitmap((ALLEGRO_BITMAP*)layers->content.image->resource_image, 0, 0, 0);
 			} else if (layers->type == L_LAYER) {
-				_draw_layer(fmap, layers, i);
+                elayer = _get_animation_layer(fmap, i);
+                al_draw_bitmap(elayer->bitmap, 0, 0, 0);
+                _render_sprites(fmap, layers, elayer);
 			}
 		}
 		layers = layers->next;
@@ -411,7 +426,7 @@ void fuzzy_map_setup()
 }
 
 /** Allocates a new _AnimatedLayer */
-static struct _AnimatedLayer * _new_map_layer(ulong id)
+static struct _AnimatedLayer * _new_map_layer(FuzzyMap * fmap, tmx_layer * layer, ulong id)
 {
     struct _AnimatedLayer * elayer;
 
@@ -420,7 +435,7 @@ static struct _AnimatedLayer * _new_map_layer(ulong id)
 
     elayer->lid = id;
     elayer->sprites = NULL;
-
+    elayer->bitmap = NULL;
     return elayer;
 }
 
@@ -531,7 +546,7 @@ static struct _AnimatedLayer * _discover_layer_sprites(FuzzyMap * fmap, tmx_laye
     tmx_map * map = fmap->map;
     uint _x, _y;
 
-    elayer = _new_map_layer(lid);
+    elayer = _new_map_layer(fmap, layer, lid);
     last = NULL;
 
     for (i=0; i<map->height; i++) {
@@ -566,6 +581,14 @@ static struct _AnimatedLayer * _discover_layer_sprites(FuzzyMap * fmap, tmx_laye
             }
         }
     }
+
+    /* create the static layer bitmap */
+    if (! (elayer->bitmap = al_create_bitmap(fmap->tot_width, fmap->tot_height)) )
+        fuzzy_critical("Failed to create layer bitmap");
+    al_set_target_bitmap(elayer->bitmap);
+    al_clear_to_color(al_map_rgba(0,0,0,0));
+    _render_layer(fmap, layer, elayer);
+    al_set_target_backbuffer(al_get_current_display());
 
     return elayer;
 }
@@ -607,7 +630,6 @@ FuzzyMap * fuzzy_map_load(char * mapfile)
     tmx_map * map;
     FuzzyMap * fmap;
     char * fname;
-    unsigned long w, h;
 
     fname = fuzzy_sformat("%s%s%s", MAP_FOLDER, _DSEP, mapfile);
     fuzzy_iz_tmxerror(map = tmx_load(fname));
@@ -620,13 +642,12 @@ FuzzyMap * fuzzy_map_load(char * mapfile)
     fmap->height = map->height;
     fmap->tile_width = map->tile_width;
     fmap->tile_height = map->tile_height;
+    fmap->tot_width = map->width  * map->tile_width;
+    fmap->tot_height = map->height * map->tile_height;
     fmap->curtime = 0;
 
     /* create map bitmap */
-
-	w = map->width  * map->tile_width;
-	h = map->height * map->tile_height;
-	if (! (fmap->bitmap = al_create_bitmap(w, h)) )
+	if (! (fmap->bitmap = al_create_bitmap(fmap->tot_width, fmap->tot_height)) )
         fuzzy_critical("Failed to create map bitmap");
 
     _fuzzy_map_initialize(fmap);
@@ -687,6 +708,8 @@ static void _unload_map_layer(struct _AnimatedLayer * elayer)
         sprite = sprite->next;
         free(d);
     }
+
+    al_destroy_bitmap(elayer->bitmap);
 }
 
 static void _unload_map_layers(FuzzyMap * fmap) {

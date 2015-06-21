@@ -44,6 +44,8 @@ typedef struct FuzzyMap {
     struct _AnimationGroup * groups;        /* animation groups */
     uint nlayers;                           /* number of layers */
     double curtime;
+    ulong tot_width;
+    ulong tot_height;
 
     /* map information duplication */
     ulong width;
