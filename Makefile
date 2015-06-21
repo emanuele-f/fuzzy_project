@@ -14,6 +14,7 @@ LDLIBS = -pthread -lrt -lm -lz -lglib-2.0 -lxml2 -luuid
 MY_LIBS = $(shell pkg-config --libs allegro-5.0 allegro_image-5.0\
   allegro_primitives-5.0 allegro_font-5.0) -lfuzzy -ltmx
 
+default: export CFLAGS += -O2
 default: main
 
 # OBJ targets
