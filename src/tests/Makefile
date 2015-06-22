@@ -6,7 +6,8 @@ TESTS_FOLDER=$(shell readlink -f .)
 UTILS_FOLDER=$(ROOT_FOLDER)/utils
 BUILD_FOLDER=$(ROOT_FOLDER)/build
 SRC_FOLDER=$(ROOT_FOLDER)/src
-CFLAGS = -Wall -g  -I $(SRC_FOLDER) -fprofile-arcs -ftest-coverage
+DEP_FOLDER=$(SRC_FOLDER)/deps
+CFLAGS = -Wall -g  -I $(SRC_FOLDER) -I$(DEP_FOLDER)/tmx/src -fprofile-arcs -ftest-coverage
 LDFLAGS = -L $(BUILD_FOLDER)
 LDLIBS = -lgcov -lfuzzy
 
@@ -15,14 +16,14 @@ default: all
 
 # All test outputs here
 TESTS = network
-TEST_TARGETS = $(addprefix $(BUILD_FOLDER)/, $(TESTS))
+TEST_TARGETS = $(addsuffix -test, $(addprefix $(BUILD_FOLDER)/, $(TESTS)))
 TESTS_TRACE=$(BUILD_FOLDER)/malloc_trace
 VALGRIND_ERROR=77
 VALGRIND_TRACE=$(BUILD_FOLDER)/valgrind_out
 GCOV_TRACE=$(BUILD_FOLDER)/gcov_out
 
 # Matches any test in build folder to be built
-$(BUILD_FOLDER)/%: %.c
+$(BUILD_FOLDER)/%-test: %-test.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
 	
 all:
@@ -35,11 +36,11 @@ all:
 		function passed { echo -en "\033[1;32m$$1\033[0m"; }; \
 		function failed { echo -en "\033[1;31m$$1\033[0m"; }; \
 		echo -en "\t$$(test $$test)..."; \
-		MALLOC_TRACE=$(TESTS_TRACE) valgrind -q --log-file=$(VALGRIND_TRACE) --error-exitcode=$(VALGRIND_ERROR) $(BUILD_FOLDER)/$$test; \
+		MALLOC_TRACE=$(TESTS_TRACE) valgrind -q --log-file=$(VALGRIND_TRACE) --error-exitcode=$(VALGRIND_ERROR) $(BUILD_FOLDER)/$$test-test; \
 		err=$$?; \
 		[ $$err -eq $(VALGRIND_ERROR) ] && echo $$(failed "valgrind error") && cat $(VALGRIND_TRACE) && exit $(VALGRIND_ERROR); \
 		[ $$err -ne 0 ] && echo $$(failed failed) && exit $$err; \
-		mtrace $(BUILD_FOLDER)/$$test $(TESTS_TRACE) >/dev/null;\
+		mtrace $(BUILD_FOLDER)/$$test-test $(TESTS_TRACE) >/dev/null;\
 		err=$$?; \
 		[ $$err -ne 0 ] && echo $$(failed "mtrace error") && cat $(TESTS_TRACE) && exit $$err; \
 		echo $$(passed ok); \

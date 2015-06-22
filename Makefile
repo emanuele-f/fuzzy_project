@@ -25,7 +25,6 @@ $(BUILD_FOLDER)/main.o: $(SRC_FOLDER)/main.c $(SRC_FOLDER)/fuzzy.h
 
 OBJ_TARGETS = $(addprefix $(BUILD_FOLDER)/, $(OBJ_TARGETS_))
 $(BUILD_FOLDER)/%.o: $(SRC_FOLDER)/%.c $(SRC_FOLDER)/%.h $(SRC_FOLDER)/fuzzy.h
-	echo $(CFLAGS)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 # Targets
