@@ -61,7 +61,7 @@ debug:
 	@echo "'make clean' before changing build type!"
 	make -e main
 
-tests: export CFLAGS += -fprofile-arcs -ftest-coverage
+tests: export CFLAGS += -fprofile-arcs -ftest-coverage -DFUZZY_DATA_FOLDER=\"../../data\"
 tests: export LDLIBS += -lgcov
 tests:
 	make -e clean

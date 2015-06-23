@@ -19,10 +19,12 @@
 #define __FUZZY_GLOBAL_H
 
 #define _DSEP "/"
-#define DATA_FOLDER "." _DSEP "data"
-#define PICTURE_FOLDER DATA_FOLDER _DSEP "pictures"
-#define FONT_FOLDER DATA_FOLDER _DSEP "fonts"
-#define MAP_FOLDER DATA_FOLDER _DSEP "maps"
+#ifndef FUZZY_DATA_FOLDER
+    #define FUZZY_DATA_FOLDER "." _DSEP "data"
+#endif 
+#define PICTURE_FOLDER FUZZY_DATA_FOLDER _DSEP "pictures"
+#define FONT_FOLDER FUZZY_DATA_FOLDER _DSEP "fonts"
+#define MAP_FOLDER FUZZY_DATA_FOLDER _DSEP "maps"
 
 /* Get a resource */
 #define fuzzy_res(folder, resource) folder _DSEP resource
@@ -97,6 +99,7 @@ do{\
 /* internal string format */
 #define FUZZY_FORMAT_SIZE 256
 #define FUZZY_LOG_DISCARD "/dev/null"
+// TODO define sformat policy
 char * fuzzy_sformat(char * fmt, ...);
 void fuzzy_log_to(char * logf);
 FILE * fuzzy_log_get();
