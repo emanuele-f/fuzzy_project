@@ -32,22 +32,35 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include <stdbool.h>
 #include <libgen.h>
 #include <stdbool.h>
 #include <tmx.h>
+
+typedef unsigned int uint;
+typedef unsigned long int ulong;
 
 #define fuzzy_min(x, y) (x < y ? x : y)
 #define fuzzy_max(x, y) (x > y ? x : y)
 #define fuzzy_str(s) #s
 
-#define fuzzy_log(ticket, msg) fprintf(stderr, "[%s] %s:%d -- %s\n", ticket, basename(__FILE__), __LINE__, msg);
+#define fuzzy_log(ticket, msg) fprintf(fuzzy_log_get(), "[%s] %s:%d -- %s\n", ticket, basename(__FILE__), __LINE__, msg)
 #define fuzzy_debug(msg) fuzzy_log("DEBUG", msg);
 #define fuzzy_warning(msg) fuzzy_log("WARNING", msg);
 #define fuzzy_error(msg) fuzzy_log("ERROR", msg);
 #define fuzzy_critical(msg)\
 do{\
     fuzzy_log("CRITICAL", msg);\
-    exit(EXIT_FAILURE);\
+    if(! _fuzzy_test_is_enabled()) {\
+        exit(EXIT_FAILURE);\
+    } else {\
+        _fuzzy_test_error();\
+        _Pragma("GCC diagnostic push");\
+        /* Not ignored currently (gcc 5.1)...*/\
+        _Pragma("GCC diagnostic ignored \"-Wreturn-type\"");\
+        return;\
+        _Pragma("GCC diagnostic pop");\
+    }\
 }while(0)
 
 #define fuzzy_iz_error(fnret, errmsg)\
@@ -83,6 +96,18 @@ do{\
 
 /* internal string format */
 #define FUZZY_FORMAT_SIZE 256
+#define FUZZY_LOG_DISCARD "/dev/null"
 char * fuzzy_sformat(char * fmt, ...);
+void fuzzy_log_to(char * logf);
+FILE * fuzzy_log_get();
+
+// Disable critical messages and errors, preparing a test function call
+void fuzzy_test_prepare();
+// Signal a test error
+void _fuzzy_test_error();
+// If test has been prepared
+bool _fuzzy_test_is_enabled();
+// Get test result
+bool fuzzy_test_result();
 
 #endif
