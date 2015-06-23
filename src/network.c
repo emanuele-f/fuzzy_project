@@ -212,14 +212,15 @@ bool fuzzy_message_poll(int sock)
 {
     fd_set single;
     struct timeval tv;
+    int retval;
 
     FD_ZERO(&single);
     FD_SET(sock, &single);
 
     /* do not wait */
     bzero(&tv, sizeof(tv));
-
-    if (select(1, &single, NULL, NULL, &tv))
+    fuzzy_lz_perror(retval = select(FD_SETSIZE, &single, NULL, NULL, &tv));
+    if (retval == 1)
         return 1;
     return 0;
 }
@@ -243,10 +244,8 @@ bool fuzzy_message_recv(int sock, FuzzyMessage * msg)
             fuzzy_critical(fuzzy_strerror(errno));
     }
 
-    if (msg->buflen < len) {
+    if (msg->buflen < len)
         _fuzzy_message_expand(msg, len);
-        fuzzy_warning(fuzzy_sformat("Supplied buffer expanded to %d bytes", len));
-    }
 
     fuzzy_lz_perror(recved = recv(sock, msg->buffer, len, 0));
     if (recved != len)
