@@ -1,6 +1,7 @@
 # Makefile to test fuzzy library units
 # depends on /src headers and on /build/libfuzzy.a
 
+SHELL=/bin/bash
 ROOT_FOLDER=$(shell readlink -f ../../)
 TESTS_FOLDER=$(shell readlink -f .)
 UTILS_FOLDER=$(ROOT_FOLDER)/utils
@@ -26,10 +27,10 @@ GCOV_TRACE=$(BUILD_FOLDER)/gcov_out
 # Matches any test in build folder to be built
 $(BUILD_FOLDER)/%-test: %-test.c $(BUILD_FOLDER)/fakeallegro.o
 	$(CC) $(CFLAGS) $(LDFLAGS) $(BUILD_FOLDER)/fakeallegro.o -o $@ $< $(LDLIBS)
-	
+
 $(BUILD_FOLDER)/fakeallegro.o: fakeallegro.c
 	$(CC) $(CFLAGS) -c -o $@ $<
-	
+
 all:
 	make clean
 	make $(TEST_TARGETS)
@@ -50,7 +51,7 @@ all:
 		echo $$(passed ok); \
 	done
 	@echo -e "=== Tests passed ===\n"
-	
+
 	@echo "=== Tests coverage summary ==="
 	@cd $(BUILD_FOLDER) && gcov -n $(shell ls $(SRC_FOLDER)) 1> $(GCOV_TRACE) 2>/dev/null
 	@$(UTILS_FOLDER)/gcovfmat.sh < $(GCOV_TRACE)

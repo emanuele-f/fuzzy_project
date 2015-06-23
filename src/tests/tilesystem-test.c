@@ -12,11 +12,11 @@
  * GNU General Public License for more details.
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * A test for fuzzy tile engine
  *
  */
- 
+
 #include <mcheck.h>
 #include "fuzzy.h"
 #include "tiles.h"
@@ -29,7 +29,7 @@ static void* image_loader(const char *path)
 	return fake_image_buffer;
 }
 
-static void* image_freer(void * m)
+static void image_freer(void * m)
 {
 }
 
@@ -41,14 +41,14 @@ static void _setup_map_module()
 
 int main()
 {
-    FuzzyMap * map;    
-    
+    FuzzyMap * map;
+
     mtrace();
     _setup_map_module();
     map = fuzzy_map_load("level000.tmx");
-    
+
     fuzzy_map_update(map, 0);
-    
+
     fuzzy_map_unload(map);
     return 0;
 }

@@ -14,7 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * A fake allegro function implementation, used for tests
- * 
+ *
  */
 
 #include <allegro5/allegro.h>
@@ -54,9 +54,9 @@ AL_FUNC(void, al_draw_tinted_bitmap_region, (ALLEGRO_BITMAP *bitmap, ALLEGRO_COL
 AL_FUNC(void, al_set_new_bitmap_format, (int format)) {}
 AL_FUNC(ALLEGRO_DISPLAY*, al_get_current_display, (void)) {return BOGUS_PTR;}
 AL_FUNC(void,            al_set_target_backbuffer, (ALLEGRO_DISPLAY *display)) {}
-AL_FUNC(ALLEGRO_PATH*, al_create_path, (const char *str)) {}
+AL_FUNC(ALLEGRO_PATH*, al_create_path, (const char *str)) {return BOGUS_PTR;}
 AL_FUNC(void, al_destroy_path, (ALLEGRO_PATH *path)) {}
-AL_FUNC(const char*, al_path_cstr, (const ALLEGRO_PATH *path, char delim)) {}
+AL_FUNC(const char*, al_path_cstr, (const ALLEGRO_PATH *path, char delim)) {return BOGUS_PTR;}
 ALLEGRO_PRIM_FUNC(void, al_draw_rectangle, (float x1, float y1, float x2, float y2, ALLEGRO_COLOR color, float thickness)) {}
 ALLEGRO_PRIM_FUNC(void, al_draw_line, (float x1, float y1, float x2, float y2, ALLEGRO_COLOR color, float thickness)) {}
 ALLEGRO_PRIM_FUNC(void, al_draw_ellipse, (float cx, float cy, float rx, float ry, ALLEGRO_COLOR color, float thickness)) {}
