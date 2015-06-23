@@ -44,11 +44,15 @@ static void _fuzzy_message_expand(FuzzyMessage * msg, ssize_t nbuflen)
         return;
     else if (msg->buflen > nbuflen)
         fuzzy_critical("Message resize to lower size");
+        
+    if (msg->cursor > nbuflen)
+        fuzzy_critical(fuzzy_sformat("Cursor %d bytes outside valid area", msg->cursor-nbuflen));
 
     fuzzy_iz_perror(newbuf = (ubyte8 *) malloc(nbuflen));
     memcpy(newbuf, msg->buffer, msg->cursor);
     free(msg->buffer);
     msg->buffer = newbuf;
+    msg->buflen = nbuflen;
 }
 
 FuzzyMessage * fuzzy_message_new()
