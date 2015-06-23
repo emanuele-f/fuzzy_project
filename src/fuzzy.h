@@ -47,9 +47,13 @@ typedef unsigned long int ulong;
 #define fuzzy_str(s) #s
 
 #define fuzzy_log(ticket, msg) fprintf(fuzzy_log_get(), "[%s] %s:%d -- %s\n", ticket, basename(__FILE__), __LINE__, msg)
-#define fuzzy_debug(msg) fuzzy_log("DEBUG", msg);
-#define fuzzy_warning(msg) fuzzy_log("WARNING", msg);
-#define fuzzy_error(msg) fuzzy_log("ERROR", msg);
+#ifndef FUZZY_SUPPRESS_DEBUG
+    #define fuzzy_debug(msg) fuzzy_log("DEBUG", msg)
+#else
+    #define fuzzy_debug(msg)
+#endif
+#define fuzzy_warning(msg) fuzzy_log("WARNING", msg)
+#define fuzzy_error(msg) fuzzy_log("ERROR", msg)
 #define fuzzy_critical(msg)\
 do{\
     fuzzy_log("CRITICAL", msg);\
