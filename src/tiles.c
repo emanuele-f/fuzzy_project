@@ -126,6 +126,8 @@ static ulong _get_tile_ulong_property(tmx_tile * tile, char * prop)
 /** Computes the gid for the given coords on the layer */
 static uint _get_gid_in_layer(tmx_map *map, tmx_layer *layer, ulong x, ulong y)
 {
+    if (x >= map->width || y >= map->height)
+        fuzzy_critical(fuzzy_sformat("Map coords outside bounds [%d,%d]: %d,%d", map->width, map->height, x, y));
     return layer->content.gids[(y*map->width)+x];
 }
 
@@ -547,8 +549,11 @@ static struct _AnimatedLayer * _discover_layer_sprites(FuzzyMap * fmap, tmx_laye
     uint _x, _y;
 
     elayer = _new_map_layer(fmap, layer, lid);
-    last = NULL;
+    if (layer->type != L_LAYER)
+        /* this layer does not hold any sprite */
+        return elayer;
 
+    last = NULL;
     for (i=0; i<map->height; i++) {
 		for (j=0; j<map->width; j++) {
             uint gid = _get_gid_in_layer(map, layer, j, i);
@@ -709,7 +714,8 @@ static void _unload_map_layer(struct _AnimatedLayer * elayer)
         free(d);
     }
 
-    al_destroy_bitmap(elayer->bitmap);
+    if (elayer->bitmap)
+        al_destroy_bitmap(elayer->bitmap);
 }
 
 static void _unload_map_layers(FuzzyMap * fmap) {
