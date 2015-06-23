@@ -7,15 +7,16 @@ UTILS_FOLDER=$(ROOT_FOLDER)/utils
 BUILD_FOLDER=$(ROOT_FOLDER)/build
 SRC_FOLDER=$(ROOT_FOLDER)/src
 DEP_FOLDER=$(SRC_FOLDER)/deps
-CFLAGS = -Wall -g  -I $(SRC_FOLDER) -I$(DEP_FOLDER)/tmx/src -fprofile-arcs -ftest-coverage
-LDFLAGS = -L $(BUILD_FOLDER)
-LDLIBS = -lgcov -lfuzzy
+CFLAGS = -Wall -g  -I $(SRC_FOLDER) -I$(DEP_FOLDER)/tmx/src \
+	-fprofile-arcs -ftest-coverage
+LDFLAGS = -L $(BUILD_FOLDER) -L$(BUILD_FOLDER)/tmx
+LDLIBS = -lgcov -lfuzzy -lz -lxml2 -ltmx
 
 .PHONY: default all clean
 default: all
 
 # All test outputs here
-TESTS = network
+TESTS = network tilesystem
 TEST_TARGETS = $(addsuffix -test, $(addprefix $(BUILD_FOLDER)/, $(TESTS)))
 TESTS_TRACE=$(BUILD_FOLDER)/malloc_trace
 VALGRIND_ERROR=77
@@ -23,8 +24,11 @@ VALGRIND_TRACE=$(BUILD_FOLDER)/valgrind_out
 GCOV_TRACE=$(BUILD_FOLDER)/gcov_out
 
 # Matches any test in build folder to be built
-$(BUILD_FOLDER)/%-test: %-test.c
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LDLIBS)
+$(BUILD_FOLDER)/%-test: %-test.c $(BUILD_FOLDER)/fakeallegro.o
+	$(CC) $(CFLAGS) $(LDFLAGS) $(BUILD_FOLDER)/fakeallegro.o -o $@ $< $(LDLIBS)
+	
+$(BUILD_FOLDER)/fakeallegro.o: fakeallegro.c
+	$(CC) $(CFLAGS) -c -o $@ $<
 	
 all:
 	make clean
