@@ -1,0 +1,3 @@
+- Use a string as animation group id
+- Create structure animation set : separate source file
+- Switch animation set on movement

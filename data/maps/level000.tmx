@@ -48,6 +48,44 @@
    </properties>
   </tile>
  </tileset>
+ <tileset firstgid="33" name="zelda" tilewidth="16" tileheight="16">
+  <image source="../tilesets/zelda.png" width="320" height="240"/>
+  <tile id="28">
+   <properties>
+    <property name="f" value="0"/>
+    <property name="g" value="5"/>
+    <property name="t" value="200"/>
+   </properties>
+  </tile>
+  <tile id="29">
+   <properties>
+    <property name="f" value="1"/>
+    <property name="g" value="5"/>
+    <property name="t" value="200"/>
+   </properties>
+  </tile>
+  <tile id="162">
+   <properties>
+    <property name="f" value="0"/>
+    <property name="g" value="4"/>
+    <property name="t" value="400"/>
+   </properties>
+  </tile>
+  <tile id="163">
+   <properties>
+    <property name="f" value="1"/>
+    <property name="g" value="4"/>
+    <property name="t" value="400"/>
+   </properties>
+  </tile>
+  <tile id="164">
+   <properties>
+    <property name="f" value="2"/>
+    <property name="g" value="4"/>
+    <property name="t" value="500"/>
+   </properties>
+  </tile>
+ </tileset>
  <layer name="LAYER_BGD" width="70" height="50">
   <data encoding="base64" compression="zlib">
    eJzt1bENgDAQBEG7/6YdkqyQQSIxM9IV8Jv8GAAAcG9+sBPo0nRpujRdmi5Nl6ZL06Xp0nRpurz3x5t36NJ0abo0XZouF/+46dJ0abo0XQAAAACAJxbiyQE8
@@ -55,7 +93,7 @@
  </layer>
  <layer name="LAYER_COL" width="70" height="50">
   <data encoding="base64" compression="zlib">
-   eJzt18sOhCAQRFHD/3+0YaUxDXTjC4p7EhcjDZEKMLptAAAAyNKL18y8zx+d7yq5jDLuV2rrP7JXrjmo5FJqa/Ut1Srk0tPWqlXL5bx+eveUNe5senOx7tfGnU1kH3nOW8+4M7h7vlhrx9t3ZKV5nX9H/qtXyKVWW2pXzOWv2hFF9krq6KPMygV67yZPIRcb++gQOXdXYs3Xe08Zudg834xWnTrvfMnlXp0K77v+arkAAAAAAAAA2Q4MDQF3
+   eJzt11sOhCAQRFHD/nflxoxfGtNAN76guCfxY6QhUgFGlwUAAAC79OI1Mu/zR+c7Sy69jPuV0vqP7JVrDiq55NpqfXO1Crm0tNVq1XI5r5/WPWWNO5rWXKz7pXFHE9lHnvPWM+4I7p4v1trx9u1Zbl7n35H/6hlyKdXm2hVz+au2R5G9khr6KLNygd67yVPIxcY+OkTO3ZlY8/XeU0YuNs8342rUqfPOl1zu1anwvuvPlgsAAAAAAACw2wAbOAI6
   </data>
  </layer>
  <objectgroup name="LAYER_OBJ">
