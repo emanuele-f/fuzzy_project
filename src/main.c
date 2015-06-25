@@ -34,6 +34,8 @@
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 480
 
+#define LINK_TILE_ID 5
+
 typedef struct Chess {
     ulong x;
     ulong y;
@@ -54,7 +56,7 @@ static void _chess_move(Chess * chess, ulong nx, ulong ny)
 
 static Chess * _chess_new(ulong x, ulong y)
 {
-    const ulong grp = 0;
+    const ulong grp = LINK_TILE_ID;
     Chess * chess = fuzzy_new(Chess);
     chess->x = x;
     chess->y = y;
