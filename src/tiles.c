@@ -139,6 +139,24 @@ static struct _AnimatedLayer * _get_animation_layer(FuzzyMap * fmap, uint lid)
     return fmap->elayers[lid];
 }
 
+/* get layer by id or die */
+static tmx_layer * _get_tmx_layer(tmx_map * map, uint lid)
+{
+    uint i;
+    tmx_layer * layer;
+
+    layer = map->ly_head;
+    for(i=0; i<=lid; i++) {
+        if (layer == NULL)
+            fuzzy_critical(fuzzy_sformat("Layer '%d' out of available layers (%d)", lid, i));
+        if (i == lid)
+            return layer;
+        layer = layer->next;
+    }
+
+    return NULL;
+}
+
 /** Get the sprite animation group.
 
     \retval animation group
@@ -280,6 +298,22 @@ static struct _AnimatedSprite * _get_sprite_at(struct _AnimatedLayer * elayer, u
         sprite = sprite->next;
     }
     return NULL;
+}
+
+bool fuzzy_map_spy(FuzzyMap * fmap, uint lid, ulong x, ulong y)
+{
+    uint gid;
+    tmx_layer * layer;
+    tmx_map * map = fmap->map;
+    tmx_tileset * ts;
+    uint tx, ty;
+
+    layer = _get_tmx_layer(map, lid);
+    gid = _get_gid_in_layer(map, layer, x, y);
+    ts = tmx_get_tileset(map, gid, &tx, &ty);
+    if (ts)
+        return true;
+    return false;
 }
 
 /*---------------------------- DRAW METHODS ------------------------------*/

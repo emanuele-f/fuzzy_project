@@ -34,6 +34,36 @@
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 480
 
+typedef struct Chess {
+    ulong x;
+    ulong y;
+}Chess;
+
+FuzzyMap * map;
+
+static void _chess_move(Chess * chess, ulong nx, ulong ny)
+{
+    if (fuzzy_map_spy(map, FUZZY_LAYER_OBJ, nx, ny))
+        // collision
+        return;
+
+    fuzzy_sprite_move(map, chess->x, chess->y, nx, ny);
+    chess->x = nx;
+    chess->y = ny;
+}
+
+static Chess * _chess_new(ulong x, ulong y)
+{
+    const ulong grp = 0;
+    Chess * chess = fuzzy_new(Chess);
+    chess->x = x;
+    chess->y = y;
+
+    fuzzy_sprite_create(map, grp, x, y);
+
+    return chess;
+}
+
 int main(int argc, char *argv[])
 {
 	ALLEGRO_DISPLAY *display = NULL;
@@ -71,12 +101,10 @@ int main(int argc, char *argv[])
     al_register_event_source(evqueue, al_get_mouse_event_source());
 
     /* Map load */
-    FuzzyMap * map;
     fuzzy_map_setup();
     map = fuzzy_map_load("level000.tmx");
     fuzzy_map_update(map, 0);
-    fuzzy_sprite_create(map, 0, 5, 5);
-    fuzzy_sprite_move(map, 5, 5, 1, 1);
+    Chess * chess = _chess_new(34, 30);
 
 	al_clear_to_color(al_map_rgb(0, 0, 0));
     al_draw_bitmap(map->bitmap, -map_x, -map_y, 0);
@@ -135,7 +163,14 @@ int main(int argc, char *argv[])
                 map_y += 5;
                 if (map_y > (map->tot_height - screen_height))
                     map_y = map->tot_height - screen_height;
-            }
+            } else if (al_key_down(&keyboard_state, ALLEGRO_KEY_W))
+                _chess_move(chess, chess->x, chess->y-1);
+            else if (al_key_down(&keyboard_state, ALLEGRO_KEY_S))
+                _chess_move(chess, chess->x, chess->y+1);
+            else if (al_key_down(&keyboard_state, ALLEGRO_KEY_A))
+                _chess_move(chess, chess->x-1, chess->y);
+            else if (al_key_down(&keyboard_state, ALLEGRO_KEY_D))
+                _chess_move(chess, chess->x+1, chess->y);
 
             redraw = true;
             break;

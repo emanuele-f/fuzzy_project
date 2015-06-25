@@ -29,11 +29,10 @@
 #define FUZZY_TILEPROP_TRANSITION_TIME "t"
 
 typedef enum FUZZY_LAYERS {
-    FUZZY_LAYER_SUB = 0,
-    FUZZY_LAYER_BGD = 1,
-    FUZZY_LAYER_OBJ = 2,
-    FUZZY_LAYER_OVR = 3,
-    FUZZY_LAYER_SKY = 4
+    FUZZY_LAYER_BGD = 0,
+    FUZZY_LAYER_OBJ = 1,
+    FUZZY_LAYER_OVR = 2,
+    FUZZY_LAYER_SKY = 3
 } FUZZY_LAYERS;
 
 #define FUZZY_LAYER_SPRITES 1
@@ -90,6 +89,18 @@ void fuzzy_map_render(FuzzyMap * map, ALLEGRO_BITMAP * target);
     \note The rendered map can be accessed through the map->bitmap field
  */
 void fuzzy_map_update(FuzzyMap * map, double time);
+
+/** Check if position is empty or not.
+
+    \param fmap
+    \param lid layer id
+    \param x coord
+    \param y coord
+
+    \retval false if cell is empty
+    \retval true if not
+ */
+bool fuzzy_map_spy(FuzzyMap * fmap, uint lid, ulong x, ulong y);
 
 /** Create a new sprite at (x, y)
 
