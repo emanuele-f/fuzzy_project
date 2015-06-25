@@ -74,7 +74,7 @@ struct _AnimatedSprite {
 
 /** Contains the list of coordinates which hold an animated sprites */
 struct _AnimatedLayer {
-    ulong lid;                              /* layer ID */
+    uint lid;                              /* layer ID */
     struct _AnimatedSprite * sprites;       /* list of animated tiles in layer */
     ALLEGRO_BITMAP * bitmap;                /* cached static bitmap for layer */
 };
@@ -536,7 +536,7 @@ static struct _AnimationGroup * _load_animation_group(FuzzyMap * fmap, ulong grp
 }
 
 /** Finds any sprite in layer and loads its animation group. */
-static struct _AnimatedLayer * _discover_layer_sprites(FuzzyMap * fmap, tmx_layer *layer, ulong lid)
+static struct _AnimatedLayer * _discover_layer_sprites(FuzzyMap * fmap, tmx_layer *layer, uint lid)
 {
     ulong i, j;
     struct _AnimatedLayer * elayer;
