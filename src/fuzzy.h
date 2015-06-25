@@ -21,7 +21,7 @@
 #define _DSEP "/"
 #ifndef FUZZY_DATA_FOLDER
     #define FUZZY_DATA_FOLDER "." _DSEP "data"
-#endif 
+#endif
 #define PICTURE_FOLDER FUZZY_DATA_FOLDER _DSEP "pictures"
 #define FONT_FOLDER FUZZY_DATA_FOLDER _DSEP "fonts"
 #define MAP_FOLDER FUZZY_DATA_FOLDER _DSEP "maps"
@@ -97,6 +97,7 @@ do{\
 #define fuzzy_lz_rerror(fnret) fuzzy_lz_error(fnret, fuzzy_strerror(fnret))
 
 #define fuzzy_load_addon(addon, fn) fuzzy_iz_error(fn, "Cannot initialize addon '" addon "'")
+#define fuzzy_new(tp) ((tp *) fuzzy_alloc(sizeof(tp)))
 
 /* FUNCTIONS */
 
@@ -116,5 +117,7 @@ void _fuzzy_test_error();
 bool _fuzzy_test_is_enabled();
 // Get test result
 bool fuzzy_test_result();
+// Error checked malloc
+void * fuzzy_alloc(ssize_t size);
 
 #endif

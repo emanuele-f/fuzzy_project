@@ -44,12 +44,12 @@ char * fuzzy_sformat(char * fmt, ...)
 void fuzzy_log_to(char * logf)
 {
     FILE * f;
-    
+
     /* cleanup */
     if (Logfile != NULL && Logfile != NullLog) {
         fclose(Logfile);
     }
-    
+
     /* only open FUZZY_LOG_DISCARD once */
     if (strncmp(logf, FUZZY_LOG_DISCARD, sizeof(FUZZY_LOG_DISCARD)) == 0) {
         if(NullLog == NULL)
@@ -89,13 +89,21 @@ bool _fuzzy_test_is_enabled()
 bool fuzzy_test_result()
 {
     bool val;
-    
+
     if (! TestFlag)
         fuzzy_critical("Test has not been prepared");
     TestFlag = false;
     val = ErrorFlag;
     ErrorFlag = false;
     Logfile = OldLogfile;
-    
+
     return val;
+}
+
+void * fuzzy_alloc(ssize_t size)
+{
+    void * ptr;
+
+    fuzzy_iz_perror(ptr = malloc(size));
+    return ptr;
 }
