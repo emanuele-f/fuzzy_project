@@ -36,6 +36,8 @@ typedef enum FUZZY_LAYERS {
     FUZZY_LAYER_SKY = 4
 } FUZZY_LAYERS;
 
+#define FUZZY_LAYER_SPRITES 1
+
 /** Holds map status and data. */
 typedef struct FuzzyMap {
     tmx_map * map;                          /* the map data */
@@ -88,5 +90,28 @@ void fuzzy_map_render(FuzzyMap * map, ALLEGRO_BITMAP * target);
     \note The rendered map can be accessed through the map->bitmap field
  */
 void fuzzy_map_update(FuzzyMap * map, double time);
+
+/** Create a new sprite at (x, y)
+
+    \param map object
+    \param grp the animation group the sprite belongs to
+    \param x where to create
+    \param y where to create
+
+    \note an error is raised if given position is not empty
+ */
+void fuzzy_sprite_create(FuzzyMap * map, ulong grp, ulong x, ulong y);
+
+/** Moves a sprite to (ox, oy) to (nx, ny)
+
+    \param map object
+    \param ox old x
+    \param oy old y
+    \param nx new x
+    \param ny new y
+
+    \note an error is raised if sprite does exist at coords (ox, oy)
+ */
+void fuzzy_sprite_move(FuzzyMap * map, ulong ox, ulong oy, ulong nx, ulong ny);
 
 #endif

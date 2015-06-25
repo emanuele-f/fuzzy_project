@@ -139,25 +139,6 @@ static struct _AnimatedLayer * _get_animation_layer(FuzzyMap * fmap, uint lid)
     return fmap->elayers[lid];
 }
 
-/** Find an animated sprite at coords in layer.
-
-    \retval sprite on success
-    \retval NULL on not found
- */
-static struct _AnimatedSprite * _get_tile_animation(struct _AnimatedLayer * elayer, ulong x, ulong y)
-{
-    struct _AnimatedSprite * sprite;
-
-    sprite = elayer->sprites;
-    while(sprite) {
-        if (sprite->x == x && sprite->y==y)
-            return sprite;
-        sprite = sprite->next;
-    }
-
-    return NULL;
-}
-
 /** Get the sprite animation group.
 
     \retval animation group
@@ -239,6 +220,68 @@ static void* al_img_loader(const char *path)
 	return (void*)res;
 }
 
+/** Appends a sprite to layer list */
+void _layer_sprite_append(struct _AnimatedLayer * layer, struct _AnimatedSprite * sp)
+{
+    struct _AnimatedSprite * last = layer->sprites;
+
+    if (last == NULL) {
+        layer->sprites = sp;
+    } else {
+        while(last->next)
+            last = last->next;
+
+        last->next = sp;
+    }
+
+    fuzzy_nz_error(sp->next, "Sprite next pointer not null");
+}
+
+/** Look for a tileset containing the specified animation group */
+tmx_tileset * _get_tileset_for_group(FuzzyMap * fmap, ulong grp)
+{
+    tmx_tile * tile;
+    tmx_tileset * ts;
+    char * grp_s;
+    ulong grp_l;
+
+    ts = fmap->map->ts_head;
+    while (ts) {
+        /* todo find grp */
+        tile = ts->tiles;
+        while(tile) {
+            grp_s = _get_tile_property(tile, FUZZY_TILEPROP_ANIMATION_GROUP);
+            if (grp_s) {
+                grp_l = atol(grp_s);
+                if (grp_l == grp)
+                    return ts;
+            }
+            tile = tile->next;
+        }
+        ts = ts->next;
+    }
+
+    fuzzy_critical(fuzzy_sformat("Tileset for group %d not found", grp));
+}
+
+/** Find an animated sprite at coords in layer.
+
+    \retval sprite on success
+    \retval NULL on not found
+ */
+static struct _AnimatedSprite * _get_sprite_at(struct _AnimatedLayer * elayer, ulong x, ulong y)
+{
+    struct _AnimatedSprite * sprite;
+
+    sprite = elayer->sprites;
+    while(sprite) {
+        if (sprite->x == x && sprite->y == y)
+            return sprite;
+        sprite = sprite->next;
+    }
+    return NULL;
+}
+
 /*---------------------------- DRAW METHODS ------------------------------*/
 
 /** Draws a line with multiple points. */
@@ -302,7 +345,7 @@ static void _render_layer(FuzzyMap *fmap, tmx_layer *layer, struct _AnimatedLaye
                 tileset = (ALLEGRO_BITMAP*)ts->image->resource_image;
                 flags = _gid_extract_flags(_get_gid_in_layer(map, layer, j, i));
 
-                if (! _get_tile_animation(elayer, j, i)) {
+                if (! _get_sprite_at(elayer, j, i)) {
                     /* standard tile*/
                     al_draw_tinted_bitmap_region(tileset, al_map_rgba_f(op, op, op, op),
                       x, y, w, h, j*ts->tile_width, i*ts->tile_height, flags);
@@ -317,7 +360,7 @@ static void _render_sprites(FuzzyMap *fmap, tmx_layer * layer, struct _AnimatedL
     struct _AnimatedSprite * sprite;
     struct _AnimationFrame * frame;
     tmx_tileset *ts;
-    uint x, y, w, h, flags;
+    uint w, h, flags;
     ALLEGRO_BITMAP * tileset;
     float op;
 
@@ -326,7 +369,7 @@ static void _render_sprites(FuzzyMap *fmap, tmx_layer * layer, struct _AnimatedL
     sprite = elayer->sprites;
     while(sprite) {
         frame = _get_sprite_frame(fmap, sprite, _get_sprite_group(fmap, sprite));
-        ts = tmx_get_tileset(fmap->map, _get_gid_in_layer(fmap->map, layer, sprite->x, sprite->y), &x, &y);
+        ts = _get_tileset_for_group(fmap, sprite->grp);
 
         w = ts->tile_width; h = ts->tile_height;
         tileset = (ALLEGRO_BITMAP*)ts->image->resource_image;
@@ -427,7 +470,7 @@ void fuzzy_map_setup()
 	tmx_img_free_func = (void (*)(void*))al_destroy_bitmap;
 }
 
-/** Allocates a new _AnimatedLayer */
+/** Allocate a new _AnimatedLayer */
 static struct _AnimatedLayer * _new_map_layer(FuzzyMap * fmap, tmx_layer * layer, ulong id)
 {
     struct _AnimatedLayer * elayer;
@@ -439,6 +482,21 @@ static struct _AnimatedLayer * _new_map_layer(FuzzyMap * fmap, tmx_layer * layer
     elayer->sprites = NULL;
     elayer->bitmap = NULL;
     return elayer;
+}
+
+/** Allocate a new _AnimatedSprite */
+static struct _AnimatedSprite * _new_sprite(ulong group)
+{
+    struct _AnimatedSprite * sp;
+
+    sp = (struct _AnimatedSprite *) malloc(sizeof(struct _AnimatedSprite));
+    fuzzy_iz_perror(sp);
+    sp->x = 0;
+    sp->y = 0;
+    sp->grp = group;
+    sp->curframe = 0;
+    sp->difftime = 0;
+    sp->next = NULL;
 }
 
 /** Load frames information for an animation group. */
@@ -567,14 +625,9 @@ static struct _AnimatedLayer * _discover_layer_sprites(FuzzyMap * fmap, tmx_laye
                     _load_animation_group(fmap, grp, ts);
 
                     /* create a sprite descriptor */
-                    obj = (struct _AnimatedSprite *) malloc(sizeof(struct _AnimatedSprite));
-                    fuzzy_iz_perror(obj);
+                    obj = _new_sprite(grp);
                     obj->x = j;
                     obj->y = i;
-                    obj->grp = grp;
-                    obj->curframe = 0;
-                    obj->difftime = 0;
-                    obj->next = NULL;
 
                     /* add to layer list */
                     if (last != NULL)
@@ -737,4 +790,39 @@ void fuzzy_map_unload(FuzzyMap * fmap)
     tmx_map_free(fmap->map);
     al_destroy_bitmap(fmap->bitmap);
     free(fmap);
+}
+
+void fuzzy_sprite_create(FuzzyMap * map, ulong grp, ulong x, ulong y)
+{
+    struct _AnimatedSprite * sprite;
+    tmx_tileset * ts;
+
+    sprite = _new_sprite(grp);
+    sprite->x = x;
+    sprite->y = y;
+
+    /* ensure sprite resources are loaded */
+    ts = _get_tileset_for_group(map, grp);
+    _load_animation_group(map, grp, ts);
+
+    /* register sprite descriptor */
+    _layer_sprite_append(map->elayers[FUZZY_LAYER_SPRITES], sprite);
+}
+
+void fuzzy_sprite_move(FuzzyMap * map, ulong ox, ulong oy, ulong nx, ulong ny)
+{
+    struct _AnimatedSprite * sprite;
+    struct _AnimatedLayer * elayer = map->elayers[FUZZY_LAYER_SPRITES];
+
+    sprite = _get_sprite_at(elayer, nx, ny);
+    if (sprite != NULL)
+        fuzzy_critical(fuzzy_sformat("Destination position %d,%d is not empty, contains one in group %d",
+          nx, ny, sprite->grp));
+    sprite = _get_sprite_at(elayer, ox, oy);
+    if (sprite == NULL)
+        fuzzy_critical(fuzzy_sformat("Source position %d,%d does not contain a sprite",
+          ox, oy));
+
+    sprite->x = nx;
+    sprite->y = ny;
 }

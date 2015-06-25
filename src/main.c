@@ -75,6 +75,8 @@ int main(int argc, char *argv[])
     fuzzy_map_setup();
     map = fuzzy_map_load("level000.tmx");
     fuzzy_map_update(map, 0);
+    fuzzy_sprite_create(map, 0, 5, 5);
+    fuzzy_sprite_move(map, 5, 5, 1, 1);
 
 	al_clear_to_color(al_map_rgb(0, 0, 0));
     al_draw_bitmap(map->bitmap, -map_x, -map_y, 0);
