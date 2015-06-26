@@ -98,6 +98,7 @@ do{\
 
 #define fuzzy_load_addon(addon, fn) fuzzy_iz_error(fn, "Cannot initialize addon '" addon "'")
 #define fuzzy_new(tp) ((tp *) fuzzy_alloc(sizeof(tp)))
+#define fuzzy_newarr(tp, len) ((tp *) fuzzy_alloc(sizeof(tp) * len))
 
 /* FUNCTIONS */
 
