@@ -41,6 +41,7 @@
 #define SOUL_TIME_INTERVAL 3.0
 #define SOUL_POINTS_BOOST 8
 #define SOUL_POINTS_INITIAL 20
+#define RAY_TIME_INTERVAL 1.0
 
 /* Action requirements */
 #define SP_MOVE 1
@@ -192,7 +193,9 @@ int main(int argc, char *argv[])
     ALLEGRO_EVENT event;
     ALLEGRO_FONT *font;
     ALLEGRO_BITMAP *clock_hand, *clock_quadrant;
-    float clock_angle = 0;
+    float clock_ray = 0, clock_angle = 0;
+    int clock_ray_alpha;
+    float soul_interval = SOUL_TIME_INTERVAL;
 
 	bool running = true;
 	bool redraw = true;
@@ -272,12 +275,20 @@ int main(int argc, char *argv[])
         case ALLEGRO_EVENT_TIMER:
             /* check soul ticks */
             curtime = al_get_time();
-            while (curtime - soul_time >= SOUL_TIME_INTERVAL) {
+            while (curtime - soul_time >= soul_interval) {
                 //~ fuzzy_debug("Soul tick!");
-                soul_time += SOUL_TIME_INTERVAL;
+                soul_time += soul_interval;
                 player_sp += SOUL_POINTS_BOOST;
+
+                clock_ray = 1;
             }
-            clock_angle = (curtime - soul_time)/SOUL_TIME_INTERVAL * FUZZY_2PI;
+            clock_angle = (curtime - soul_time)/soul_interval * FUZZY_2PI;
+            if (clock_ray) {
+                clock_ray = (curtime - soul_time)/RAY_TIME_INTERVAL * 50 + 40;
+                clock_ray_alpha = (curtime - soul_time)/RAY_TIME_INTERVAL*(55) + 200;
+                if (clock_ray >= 90)
+                    clock_ray = 0;
+            }
 
             al_get_keyboard_state(&keyboard_state);
             if (al_key_down(&keyboard_state, ALLEGRO_KEY_RIGHT)) {
@@ -299,8 +310,11 @@ int main(int argc, char *argv[])
                 map_y += 5;
                 if (map_y > (map->tot_height - screen_height))
                     map_y = map->tot_height - screen_height;
+            } else if (al_key_down(&keyboard_state, ALLEGRO_KEY_O)) {
+                soul_interval = fuzzy_max(0.1, soul_interval - 0.05);
+            } else if (al_key_down(&keyboard_state, ALLEGRO_KEY_P)) {
+                soul_interval += 0.05;
             }
-
             redraw = true;
             break;
         case ALLEGRO_EVENT_KEY_DOWN:
@@ -328,7 +342,6 @@ int main(int argc, char *argv[])
                 case ALLEGRO_KEY_K:
                     _attack_area_on();
                     break;
-
                 case ALLEGRO_KEY_SPACE:
                     /* switch attack type */
                     if (chess->atkarea == &FuzzyMeleeMan)
@@ -415,12 +428,13 @@ int main(int argc, char *argv[])
             /* draw SP count */
             al_draw_filled_rounded_rectangle(4, screen_height-170, 175, screen_height-4,
                 8, 8, al_map_rgba(0, 0, 0, 200));
-            al_draw_textf(font, al_map_rgb(255, 70, 70),
+            al_draw_textf(font, al_map_rgb(255, 255, 255),
                 15, screen_height-163, ALLEGRO_ALIGN_LEFT, "SP: %d", player_sp);
 
             /* draw Soul Clock */
             al_draw_scaled_bitmap(clock_quadrant, 0, 0, 301, 301, 20, screen_height-80-139/2, 139, 139, 0);
             al_draw_scaled_rotated_bitmap(clock_hand, 160, 607, 90, screen_height-80, 0.11, 0.11, clock_angle, 0);
+            al_draw_circle(90, screen_height-80, clock_ray, al_map_rgb(80, clock_ray_alpha, 80), 2.0);
 
             al_flip_display();
 #if DEBUG
