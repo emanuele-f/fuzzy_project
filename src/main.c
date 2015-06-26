@@ -29,6 +29,7 @@
 
 #define FPS 30
 #define LEFT_BUTTON 1
+#define RIGHT_BUTTON 2
 #define GRID_ON
 #define WINDOW_TITLE "FUZZY Tales!"
 #define WINDOW_WIDTH 640
@@ -48,9 +49,11 @@ FuzzyMap * map;
 
 static void _chess_move(Chess * chess, ulong nx, ulong ny)
 {
-    if (fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, nx, ny) != FUZZY_CELL_EMPTY)
+    if (fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, nx, ny) != FUZZY_CELL_EMPTY) {
         // collision
+        printf("cause:%d\n", fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, nx, ny));
         return;
+    }
     
     if (chess->target)
         fuzzy_sprite_move(map, FUZZY_LAYER_BELOW, chess->x, chess->y, nx, ny);
@@ -130,6 +133,20 @@ static void _do_attack(Chess * chess, ulong tx, ulong ty)
 {
     fuzzy_sprite_destroy(map, FUZZY_LAYER_SPRITES, tx, ty);
 }
+
+#define _attack_area_on() do {\
+    if (!showing_area && chess->target) {\
+        _chess_show_attack_area(chess);\
+        showing_area = true;\
+    }\
+}while(0)
+
+#define _attack_area_off() do{\
+    if(showing_area) {\
+        _chess_hide_attack_area(chess);\
+        showing_area = false;\
+    }\
+}while(0)
 
 int main(int argc, char *argv[])
 {
@@ -239,11 +256,9 @@ int main(int argc, char *argv[])
             if(! chess->target)
                 break;
                 
-            if (showing_area) {
+            if (showing_area)
                 /* abort attack */
-                _chess_hide_attack_area(chess);
-                showing_area = false;
-            }
+                _attack_area_off();
             
             switch(event.keyboard.keycode) {
                 case ALLEGRO_KEY_W:
@@ -260,8 +275,7 @@ int main(int argc, char *argv[])
                     break;
                     
                 case ALLEGRO_KEY_K:
-                    _chess_show_attack_area(chess);
-                    showing_area = true;
+                    _attack_area_on();
                     break;
             }
             break;
@@ -273,7 +287,9 @@ int main(int argc, char *argv[])
         case ALLEGRO_EVENT_KEY_CHAR:
             break;
         case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
-            if(event.mouse.button == LEFT_BUTTON) {
+            if(event.mouse.button == RIGHT_BUTTON) {
+                _attack_area_on();
+            } else if(event.mouse.button == LEFT_BUTTON) {
                 /* world to tile coords */
                 int tx = (event.mouse.x+map_x) / map->tile_width;
                 int ty = (event.mouse.y+map_y) / map->tile_height;
@@ -284,19 +300,19 @@ int main(int argc, char *argv[])
                     /* select attack target */
                     if (fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, tx, ty) == FUZZY_CELL_SPRITE) {
                         _do_attack(chess, tx, ty);
-                        _chess_hide_attack_area(chess);
-                        showing_area = false;
+                        _attack_area_off();
                     }
                 } else {
                     /* select chess */
                     if (chess->x == tx && chess->y == ty) {
-                        fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_TARGET, tx, ty);
-                        chess->target = true;
+                        if (! chess->target) {
+                            fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_TARGET, tx, ty);
+                            chess->target = true;
+                        }
                     } else if (chess->target) {
                         if (showing_area) {
                             /* abort attack */
-                            _chess_hide_attack_area(chess);
-                            showing_area = false;
+                            _attack_area_off();
                         } else {
                             /* remove target */
                             fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, chess->x, chess->y);
