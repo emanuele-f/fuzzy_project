@@ -49,6 +49,7 @@ typedef struct Chess {
     ulong x;
     ulong y;
     bool target;
+    FuzzyArea * atkarea;
 }Chess;
 
 FuzzyMap * map;
@@ -83,13 +84,14 @@ static bool _chess_move(Chess * chess, ulong nx, ulong ny)
     return true;
 }
 
-static Chess * _chess_new(ulong x, ulong y)
+static Chess * _chess_new(ulong x, ulong y, FuzzyArea * atkarea)
 {
-    const ulong grp = GID_LINK;
+    char * grp = GID_LINK;
     Chess * chess = fuzzy_new(Chess);
     chess->x = x;
     chess->y = y;
     chess->target = false;
+    chess->atkarea = atkarea;
 
     fuzzy_sprite_create(map, FUZZY_LAYER_SPRITES, grp, x, y);
 
@@ -109,43 +111,52 @@ static void _chess_free(Chess * chess)
 
 static void _chess_show_attack_area(Chess * chess)
 {
-    const ulong x = chess->x;
-    const ulong y = chess->y;
+    FuzzyAreaIterator iterator;
+    FuzzyPoint limit, pt;
+    bool val;
     
-    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, x-1, y);
-    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, x+1, y);
-    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, x, y-1);
-    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, x, y+1);
-    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, x-1, y-1);
-    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, x-1, y+1);
-    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, x+1, y+1);
-    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, x+1, y-1);
+    limit.x = map->width;
+    limit.y = map->height;
+    pt.x = chess->x;
+    pt.y = chess->y;
+    
+    fuzzy_area_iter_begin(chess->atkarea, &iterator, &pt, &limit);
+    while(fuzzy_area_iter(chess->atkarea, &iterator))
+        if (iterator.value)
+            fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, iterator.pos.x, iterator.pos.y);
 }
 
 static void _chess_hide_attack_area(Chess * chess)
 {
-    const ulong x = chess->x;
-    const ulong y = chess->y;
+    FuzzyAreaIterator iterator;
+    FuzzyPoint limit, pt;
+    bool val;
     
-    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x-1, y);
-    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x+1, y);
-    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x, y-1);
-    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x, y+1);
-    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x-1, y-1);
-    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x-1, y+1);
-    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x+1, y+1);
-    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x+1, y-1);
+    limit.x = map->width;
+    limit.y = map->height;
+    pt.x = chess->x;
+    pt.y = chess->y;
+    
+    fuzzy_area_iter_begin(chess->atkarea, &iterator, &pt, &limit);
+    while(fuzzy_area_iter(chess->atkarea, &iterator))
+        if (iterator.value)
+            fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, iterator.pos.x, iterator.pos.y);
 }
 
 static bool _is_inside_target_area(Chess * chess, ulong tx, ulong ty)
 {
+    FuzzyPoint pivot, pt;
+    
     if (tx == chess->x && ty == chess->y)
         return false;
+      
+    pivot.x = chess->x;
+    pivot.y = chess->y;
+    pt.x = tx;
+    pt.y = ty;
         
-    if (tx >= chess->x-1 && tx <= chess->x+1 &&
-      ty >= chess->y-1 && ty <= chess->y+1
-    )   return true;
-            
+    if (fuzzy_area_inside(chess->atkarea, &pivot, &pt))
+        return true;
     return false;
 }
 
@@ -211,12 +222,12 @@ int main(int argc, char *argv[])
     al_register_event_source(evqueue, al_get_mouse_event_source());
 
     /* Map load */
+    fuzzy_areadb_init();
     fuzzy_map_setup();
     map = fuzzy_map_load("level000.tmx");
     fuzzy_map_update(map, 0);
-    Chess * chess = _chess_new(34, 30);
+    Chess * chess = _chess_new(34, 30, &FuzzyRangedMan);
     bool showing_area = false;
-    fuzzy_areadb_init();
 
 	al_clear_to_color(al_map_rgb(0, 0, 0));
     al_draw_bitmap(map->bitmap, -map_x, -map_y, 0);

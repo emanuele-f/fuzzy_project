@@ -17,10 +17,16 @@
  
 #include "fuzzy.h"
 
-typedef struct FuzzyPoint {
-    ulong x;
-    ulong y;
-} FuzzyPoint;
+#ifndef __FUZZY_AREA_H
+#define __FUZZY_AREA_H
+
+typedef struct FuzzyAreaIterator {
+    FuzzyPoint _pivot;              /* center on this value */
+    FuzzyPoint _limit;              /* limit positions */
+    FuzzyPoint _apos;               /* current real area position */
+    FuzzyPoint pos;                 /* the iterator position */
+    bool value;                     /* the iterator value */
+} FuzzyAreaIterator;
 
 /* keep these odd numbers */
 #define FUZZY_AREA_NROWS 15
@@ -48,25 +54,30 @@ void fuzzy_area_prototype(FuzzyArea area, uint width, uint height);
    \retval true is inside
    \retval false is outside
  */
-void fuzzy_area_inside(const FuzzyArea area, const FuzzyPoint * pivot, const FuzzyPoint * check);
+bool fuzzy_area_inside(const FuzzyArea * area, const FuzzyPoint * pivot, const FuzzyPoint * check);
 
 /** Initializes the iterator for the iteration.
     \param area
-    \param pivot central area point
     \param iterator the variable to initialize
+    \param pivot central area point
+    \param limit position
  */
-void fuzzy_area_iter_begin(const FuzzyArea area, const FuzzyPoint * pivot, FuzzyPoint ** iterator);
+void fuzzy_area_iter_begin(const FuzzyArea * area, FuzzyAreaIterator * iterator, const FuzzyPoint * pivot, const FuzzyPoint * limit);
 
 /** Iterates through the area cells
     
     \param area
-    \param pivot central area point
     \param iterator a variable, initialized by fuzzy_area_begin_iter, updated
            during each iteration.
  
-    \retval the same iterator value
-    \retval NULL if iteration is finished
+    \retval the same iterator
+    \retval NULL if iteration has finished
  */
-FuzzyPoint * fuzzy_area_iter(const FuzzyArea area, const FuzzyPoint * pivot, FuzzyPoint ** iterator);
+FuzzyAreaIterator * fuzzy_area_iter(const FuzzyArea * area, FuzzyAreaIterator * iterator);
 
 void fuzzy_areadb_init();
+
+/* Database definitions */
+extern FuzzyArea FuzzyRangedMan;
+
+#endif
