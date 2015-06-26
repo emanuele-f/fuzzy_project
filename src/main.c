@@ -36,6 +36,14 @@
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 480
 
+/* Seconds before soul points boost */
+#define SOUL_TIME_INTERVAL 3.0
+#define SOUL_POINTS_BOOST 8
+
+/* Action requirements */
+#define SP_MOVE 1
+#define SP_ATTACK 5
+
 typedef struct Chess {
     ulong x;
     ulong y;
@@ -43,18 +51,35 @@ typedef struct Chess {
 }Chess;
 
 FuzzyMap * map;
+uint player_sp = 5;
 
-static void _chess_move(Chess * chess, ulong nx, ulong ny)
+static bool _pay_sp_requirement(uint sp_req)
 {
+    if (player_sp < sp_req) {
+        fuzzy_debug("Not enough SP!");
+        return false;
+    }
+    
+    player_sp -= sp_req;
+    return true;
+}
+
+static bool _chess_move(Chess * chess, ulong nx, ulong ny)
+{
+    if (! _pay_sp_requirement(SP_MOVE))
+        // not enough APs
+        return false;
+    
     if (fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, nx, ny) != FUZZY_CELL_EMPTY)
         // collision
-        return;
+        return false;
     
     if (chess->target)
         fuzzy_sprite_move(map, FUZZY_LAYER_BELOW, chess->x, chess->y, nx, ny);
     fuzzy_sprite_move(map, FUZZY_LAYER_SPRITES, chess->x, chess->y, nx, ny);
     chess->x = nx;
     chess->y = ny;
+    return true;
 }
 
 static Chess * _chess_new(ulong x, ulong y)
@@ -124,9 +149,12 @@ static bool _is_inside_target_area(Chess * chess, ulong tx, ulong ty)
 }
 
 /* pre: target is in attack area and there is a target */
-static void _do_attack(Chess * chess, ulong tx, ulong ty)
+static bool _do_attack(Chess * chess, ulong tx, ulong ty)
 {
+    if (! _pay_sp_requirement(SP_ATTACK))
+        return false;
     fuzzy_sprite_destroy(map, FUZZY_LAYER_SPRITES, tx, ty);
+    return true;
 }
 
 #define _attack_area_on() do {\
@@ -150,6 +178,7 @@ int main(int argc, char *argv[])
 	ALLEGRO_TIMER *timer = NULL;
 	ALLEGRO_KEYBOARD_STATE keyboard_state;
     ALLEGRO_EVENT event;
+    ALLEGRO_FONT *font;
 
 	bool running = true;
 	bool redraw = true;
@@ -157,7 +186,7 @@ int main(int argc, char *argv[])
 	int map_x = 13*16, map_y = 5*16;
 	int screen_width = WINDOW_WIDTH;
 	int screen_height = WINDOW_HEIGHT;
-    double t;
+    double t, soul_time;
 
 	/* Initialization */
     fuzzy_iz_error(al_init(), "Failed to initialize allegro");
@@ -172,6 +201,7 @@ int main(int argc, char *argv[])
 	fuzzy_iz_error(display = al_create_display(screen_width, screen_height),
       "Cannot initialize display");
     al_set_window_title(display, WINDOW_TITLE);
+    fuzzy_iz_error(font = al_load_font(fuzzy_res(FONT_FOLDER, "fixed_font.tga"), 0, 0), "Cannot load 'fixed_font.tga'");
 
 	/* Queue setup */
 	al_register_event_source(evqueue, al_get_display_event_source(display));
@@ -192,11 +222,9 @@ int main(int argc, char *argv[])
 
 #if DEBUG
 	ALLEGRO_BITMAP *icon;
-    ALLEGRO_FONT *font;
     int fps, fps_accum;
     double fps_time;
 
-    font = al_load_font(fuzzy_res(FONT_FOLDER, "fixed_font.tga"), 0, 0);
     icon = al_load_bitmap(fuzzy_res(PICTURE_FOLDER, "icon.tga"));
     if (icon)
         al_set_display_icon(display, icon);
@@ -215,6 +243,7 @@ int main(int argc, char *argv[])
     svsock = fuzzy_server_connect(FUZZY_DEFAULT_SERVER_ADDRESS, FUZZY_DEFAULT_SERVER_PORT);
 
 	/* MAIN loop */
+    soul_time = al_get_time();
     al_start_timer(timer);
 	while (running) {
         /* wait until an event happens */
@@ -222,7 +251,13 @@ int main(int argc, char *argv[])
 
         switch (event.type) {
         case ALLEGRO_EVENT_TIMER:
-            // is an arrow key being held?
+            /* check soul ticks */
+            while (al_get_time() - soul_time >= SOUL_TIME_INTERVAL) {
+                fuzzy_debug("Soul tick!");
+                soul_time += SOUL_TIME_INTERVAL;
+                player_sp += SOUL_POINTS_BOOST;
+            }
+        
             al_get_keyboard_state(&keyboard_state);
             if (al_key_down(&keyboard_state, ALLEGRO_KEY_RIGHT)) {
                 map_x += 5;
@@ -294,8 +329,8 @@ int main(int argc, char *argv[])
                 if(showing_area && _is_inside_target_area(chess, tx, ty)) {
                     /* select attack target */
                     if (fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, tx, ty) == FUZZY_CELL_SPRITE) {
-                        _do_attack(chess, tx, ty);
-                        _attack_area_off();
+                        if (_do_attack(chess, tx, ty))
+                            _attack_area_off();
                     }
                 } else {
                     /* select chess */
@@ -343,13 +378,16 @@ int main(int argc, char *argv[])
                 al_draw_line(0, y, screen_width, y, al_map_rgba(7,7,7,100), 1);
 #endif
 #if DEBUG
-            if (font) {
-                al_draw_filled_rounded_rectangle(4, 4, 100, 30,
-                    8, 8, al_map_rgba(0, 0, 0, 200));
-                al_draw_textf(font, al_map_rgb(255, 255, 255),
-                    54, 8, ALLEGRO_ALIGN_CENTRE, "FPS: %d", fps);
-            }
+            al_draw_filled_rounded_rectangle(screen_width-100, 4, screen_width, 30,
+                8, 8, al_map_rgba(0, 0, 0, 200));
+            al_draw_textf(font, al_map_rgb(255, 255, 255),
+                screen_width-50, 8, ALLEGRO_ALIGN_CENTRE, "FPS: %d", fps);
 #endif
+            al_draw_filled_rounded_rectangle(4, 4, 100, 24,
+                8, 8, al_map_rgba(0, 0, 0, 200));
+            al_draw_textf(font, al_map_rgb(100, 255, 100),
+                40, 6, ALLEGRO_ALIGN_CENTRE, "SP: %d", player_sp);
+
             al_flip_display();
 #if DEBUG
             fps_accum++;
