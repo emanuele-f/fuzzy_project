@@ -47,6 +47,9 @@ typedef struct FuzzyPoint {
     ulong y;
 } FuzzyPoint;
 
+#define FUZZY_PI 3.14159265358979323846
+#define FUZZY_2PI (2*FUZZY_PI)
+
 #define fuzzy_min(x, y) (x < y ? x : y)
 #define fuzzy_max(x, y) (x > y ? x : y)
 #define fuzzy_abs(x) ((x) >= 0 ? (x) : -(x))
