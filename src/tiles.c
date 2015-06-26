@@ -79,6 +79,15 @@ struct _AnimatedLayer {
     ALLEGRO_BITMAP * bitmap;                /* cached static bitmap for layer */
 };
 
+/** Describes a tile information */
+struct _TileInfo {
+    uint gid;
+    tmx_tileset * ts;
+    tmx_tile * tile;        /* could contain tile specific info */
+    uint tx;                /* x offset inside tileset */
+    uint ty;                /* y offset inside tileset */
+};
+
 /*-------------------------- UTILITY METHODS -----------------------------*/
 
 /** Get special flags from gid */
@@ -307,23 +316,49 @@ static struct _AnimatedSprite * _get_sprite_at(struct _AnimatedLayer * elayer, u
     return NULL;
 }
 
-FUZZY_CELL_TYPE fuzzy_map_spy(FuzzyMap * fmap, uint lid, ulong x, ulong y)
+/* nb real tile information is not saved into ts->tiles list, it is
+ * rather stored into layer->content.gids where 0 indicates empty tile
+ * 
+ * if info != NULL, save tile information inside
+ * Returns true: tile found, false:not found
+ */
+static bool _get_tile_at(tmx_map * map, uint lid, ulong x, ulong y, struct _TileInfo * info)
 {
-    uint gid;
-    tmx_layer * layer;
-    tmx_map * map = fmap->map;
     tmx_tileset * ts;
+    tmx_layer * layer;
+    uint gid;
     uint tx, ty;
-
+    
     layer = _get_tmx_layer(map, lid);
     gid = _get_gid_in_layer(map, layer, x, y);
+    
     ts = tmx_get_tileset(map, gid, &tx, &ty);
     if (ts) {
-        if (_get_sprite_at(_get_animation_layer(fmap, lid), x, y, NULL) != NULL)
-            return FUZZY_CELL_SPRITE;
-        return FUZZY_CELL_TILE;
+        /* tile found */
+        if (info != NULL) {
+            info->gid = gid;
+            info->ts = ts;
+            info->tx = tx;
+            info->ty = ty;
+            
+            /* try to get tile specific info */
+            info->tile = tmx_get_tile(map, gid);
+        }
+        return true;
     }
-    return FUZZY_CELL_EMPTY;
+    return false;
+}
+
+FUZZY_CELL_TYPE fuzzy_map_spy(FuzzyMap * fmap, uint lid, ulong x, ulong y)
+{
+    tmx_map * map = fmap->map;
+    
+    if (_get_sprite_at(_get_animation_layer(fmap, lid), x, y, NULL))
+        return FUZZY_CELL_SPRITE;
+    else if (_get_tile_at(fmap->map, lid, x, y, NULL))
+        return FUZZY_CELL_TILE;
+    else
+        return FUZZY_CELL_EMPTY;
 }
 
 /*---------------------------- DRAW METHODS ------------------------------*/
@@ -856,10 +891,71 @@ void fuzzy_sprite_create(FuzzyMap * map, uint lid, ulong grp, ulong x, ulong y)
     _layer_sprite_append(map->elayers[lid], sprite);
 }
 
-void fuzzy_sprite_destroy(FuzzyMap * map, uint lid, ulong x, ulong y)
+/* from tmx.c */
+static void free_props(tmx_property *p) {
+	if (p) {
+		free_props(p->next);
+		free(p->name);
+		free(p->value);
+		free(p);
+    }
+}
+static void free_image(tmx_image *i) {
+	if (i) {
+		free(i->source);
+		if (tmx_img_free_func)
+			tmx_img_free_func(i->resource_image);
+		free(i);
+	}
+}
+static void free_tile(tmx_tile *t) {
+    free_props(t->properties);
+    free_image(t->image);
+    free(t);
+}
+
+/* Remove a tile from tmx data structures
+ * 
+ * pre: tile is present
+ * post: tinfo->tile is NULL
+ */
+static void _remove_tile_at(tmx_map * map, uint lid, ulong x, ulong y, struct _TileInfo * tinfo)
+{
+    tmx_layer * layer;
+    tmx_tile * tile;
+    uint id;
+    
+    layer = _get_tmx_layer(map, lid);
+    
+    /* clear the tile gid */
+    layer->content.gids[(y*map->width)+x] = 0;
+        
+    if (tinfo->tile != NULL) {
+        /* also remove special tile information */
+        id = (tinfo->gid & TMX_FLIP_BITS_REMOVAL) - tinfo->ts->firstgid;
+            
+        tile = tinfo->ts->tiles;
+        while(tile->next) {             // pre: tileset is not empty
+            if (tile->next->id == id) {
+                tile->next = tinfo->tile->next;
+                free_tile(tinfo->tile);
+                tinfo->tile = NULL;
+                break;
+            }
+            tile = tile->next;
+        }
+        
+        if(tinfo->tile != NULL)
+            fuzzy_critical(fuzzy_sformat("Cannot find tile '%d' in tileset!", id));
+    }
+}
+
+void fuzzy_sprite_destroy(FuzzyMap * fmap, uint lid, ulong x, ulong y)
 {
     struct _AnimatedSprite * sprite, * prec;
-    struct _AnimatedLayer * elayer = map->elayers[lid];
+    struct _AnimatedLayer * elayer = fmap->elayers[lid];
+    struct _TileInfo tinfo;
+    tmx_map * map = fmap->map;
     
     sprite = _get_sprite_at(elayer, x, y, &prec);
     if (sprite == NULL)
@@ -870,6 +966,10 @@ void fuzzy_sprite_destroy(FuzzyMap * map, uint lid, ulong x, ulong y)
         elayer->sprites = sprite->next;
     else
         prec->next = sprite->next;
+        
+    /* check if it's also loaded into layer list */
+    if (_get_tile_at(map, lid, x, y, &tinfo))
+        _remove_tile_at(map, lid, x, y, &tinfo);
         
     free(sprite);
 }

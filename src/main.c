@@ -49,11 +49,9 @@ FuzzyMap * map;
 
 static void _chess_move(Chess * chess, ulong nx, ulong ny)
 {
-    if (fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, nx, ny) != FUZZY_CELL_EMPTY) {
+    if (fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, nx, ny) != FUZZY_CELL_EMPTY)
         // collision
-        printf("cause:%d\n", fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, nx, ny));
         return;
-    }
     
     if (chess->target)
         fuzzy_sprite_move(map, FUZZY_LAYER_BELOW, chess->x, chess->y, nx, ny);
