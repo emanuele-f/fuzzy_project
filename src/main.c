@@ -62,7 +62,7 @@ static bool _pay_sp_requirement(uint sp_req)
         fuzzy_debug("Not enough SP!");
         return false;
     }
-    
+
     player_sp -= sp_req;
     return true;
 }
@@ -72,11 +72,11 @@ static bool _chess_move(Chess * chess, ulong nx, ulong ny)
     if (! _pay_sp_requirement(SP_MOVE))
         // not enough APs
         return false;
-    
+
     if (fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, nx, ny) != FUZZY_CELL_EMPTY)
         // collision
         return false;
-    
+
     if (chess->target)
         fuzzy_sprite_move(map, FUZZY_LAYER_BELOW, chess->x, chess->y, nx, ny);
     fuzzy_sprite_move(map, FUZZY_LAYER_SPRITES, chess->x, chess->y, nx, ny);
@@ -103,7 +103,7 @@ static void _chess_free(Chess * chess)
 {
     const ulong x = chess->x;
     const ulong y = chess->y;
-    
+
     if (chess->target)
         fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x, y);
     fuzzy_sprite_destroy(map, FUZZY_LAYER_SPRITES, x, y);
@@ -115,12 +115,12 @@ static void _chess_show_attack_area(Chess * chess)
     FuzzyAreaIterator iterator;
     FuzzyPoint limit, pt;
     bool val;
-    
+
     limit.x = map->width;
     limit.y = map->height;
     pt.x = chess->x;
     pt.y = chess->y;
-    
+
     fuzzy_area_iter_begin(chess->atkarea, &iterator, &pt, &limit);
     while(fuzzy_area_iter(chess->atkarea, &iterator))
         if (iterator.value)
@@ -131,13 +131,12 @@ static void _chess_hide_attack_area(Chess * chess)
 {
     FuzzyAreaIterator iterator;
     FuzzyPoint limit, pt;
-    bool val;
-    
+
     limit.x = map->width;
     limit.y = map->height;
     pt.x = chess->x;
     pt.y = chess->y;
-    
+
     fuzzy_area_iter_begin(chess->atkarea, &iterator, &pt, &limit);
     while(fuzzy_area_iter(chess->atkarea, &iterator))
         if (iterator.value)
@@ -147,15 +146,15 @@ static void _chess_hide_attack_area(Chess * chess)
 static bool _is_inside_target_area(Chess * chess, ulong tx, ulong ty)
 {
     FuzzyPoint pivot, pt;
-    
+
     if (tx == chess->x && ty == chess->y)
         return false;
-      
+
     pivot.x = chess->x;
     pivot.y = chess->y;
     pt.x = tx;
     pt.y = ty;
-        
+
     if (fuzzy_area_inside(chess->atkarea, &pivot, &pt))
         return true;
     return false;
@@ -192,6 +191,8 @@ int main(int argc, char *argv[])
 	ALLEGRO_KEYBOARD_STATE keyboard_state;
     ALLEGRO_EVENT event;
     ALLEGRO_FONT *font;
+    ALLEGRO_BITMAP *clock_hand, *clock_quadrant;
+    float clock_angle = 0;
 
 	bool running = true;
 	bool redraw = true;
@@ -199,7 +200,7 @@ int main(int argc, char *argv[])
 	int map_x = 13*16, map_y = 5*16;
 	int screen_width = WINDOW_WIDTH;
 	int screen_height = WINDOW_HEIGHT;
-    double t, soul_time;
+    double curtime, soul_time;
 
 	/* Initialization */
     fuzzy_iz_error(al_init(), "Failed to initialize allegro");
@@ -215,6 +216,10 @@ int main(int argc, char *argv[])
       "Cannot initialize display");
     al_set_window_title(display, WINDOW_TITLE);
     fuzzy_iz_error(font = al_load_font(fuzzy_res(FONT_FOLDER, "fixed_font.tga"), 0, 0), "Cannot load 'fixed_font.tga'");
+    clock_hand = al_load_bitmap(fuzzy_res(PICTURE_FOLDER, "clock_hand.png"));
+    fuzzy_iz_error(clock_hand, "Cannot load clock handle");
+    clock_quadrant = al_load_bitmap(fuzzy_res(PICTURE_FOLDER, "clock_quadrant.png"));
+    fuzzy_iz_error(clock_hand, "Cannot load clock quadrant");
 
 	/* Queue setup */
 	al_register_event_source(evqueue, al_get_display_event_source(display));
@@ -242,7 +247,7 @@ int main(int argc, char *argv[])
     icon = al_load_bitmap(fuzzy_res(PICTURE_FOLDER, "icon.tga"));
     if (icon)
         al_set_display_icon(display, icon);
-    fps_accum = fps_time = t = 0;
+    fps_accum = fps_time = 0;
     fps = FPS;
 #endif
 
@@ -266,12 +271,14 @@ int main(int argc, char *argv[])
         switch (event.type) {
         case ALLEGRO_EVENT_TIMER:
             /* check soul ticks */
-            while (al_get_time() - soul_time >= SOUL_TIME_INTERVAL) {
+            curtime = al_get_time();
+            while (curtime - soul_time >= SOUL_TIME_INTERVAL) {
                 //~ fuzzy_debug("Soul tick!");
                 soul_time += SOUL_TIME_INTERVAL;
                 player_sp += SOUL_POINTS_BOOST;
             }
-        
+            clock_angle = (curtime - soul_time)/SOUL_TIME_INTERVAL * FUZZY_2PI;
+
             al_get_keyboard_state(&keyboard_state);
             if (al_key_down(&keyboard_state, ALLEGRO_KEY_RIGHT)) {
                 map_x += 5;
@@ -299,11 +306,11 @@ int main(int argc, char *argv[])
         case ALLEGRO_EVENT_KEY_DOWN:
             if(! chess->target)
                 break;
-                
+
             if (showing_area)
                 /* abort attack */
                 _attack_area_off();
-            
+
             switch(event.keyboard.keycode) {
                 case ALLEGRO_KEY_W:
                     _chess_move(chess, chess->x, chess->y-1);
@@ -317,11 +324,11 @@ int main(int argc, char *argv[])
                 case ALLEGRO_KEY_D:
                     _chess_move(chess, chess->x+1, chess->y);
                     break;
-                    
+
                 case ALLEGRO_KEY_K:
                     _attack_area_on();
                     break;
-                    
+
                 case ALLEGRO_KEY_SPACE:
                     /* switch attack type */
                     if (chess->atkarea == &FuzzyMeleeMan)
@@ -382,8 +389,8 @@ int main(int argc, char *argv[])
         }
 
         if (redraw && al_is_event_queue_empty(evqueue)) {
-            t = al_get_time();
-            fuzzy_map_update(map, t);
+            curtime = al_get_time();
+            fuzzy_map_update(map, curtime);
 
             // Clear the screen
             al_clear_to_color(al_map_rgb(0, 0, 0));
@@ -405,18 +412,23 @@ int main(int argc, char *argv[])
             al_draw_textf(font, al_map_rgb(255, 255, 255),
                 screen_width-50, 8, ALLEGRO_ALIGN_CENTRE, "FPS: %d", fps);
 #endif
-            al_draw_filled_rounded_rectangle(4, 4, 100, 24,
+            /* draw SP count */
+            al_draw_filled_rounded_rectangle(4, screen_height-170, 175, screen_height-4,
                 8, 8, al_map_rgba(0, 0, 0, 200));
-            al_draw_textf(font, al_map_rgb(100, 255, 100),
-                40, 6, ALLEGRO_ALIGN_CENTRE, "SP: %d", player_sp);
+            al_draw_textf(font, al_map_rgb(255, 70, 70),
+                15, screen_height-163, ALLEGRO_ALIGN_LEFT, "SP: %d", player_sp);
+
+            /* draw Soul Clock */
+            al_draw_scaled_bitmap(clock_quadrant, 0, 0, 301, 301, 20, screen_height-80-139/2, 139, 139, 0);
+            al_draw_scaled_rotated_bitmap(clock_hand, 160, 607, 90, screen_height-80, 0.11, 0.11, clock_angle, 0);
 
             al_flip_display();
 #if DEBUG
             fps_accum++;
-            if (t - fps_time >= 1) {
+            if (curtime - fps_time >= 1) {
                 fps = fps_accum;
                 fps_accum = 0;
-                fps_time = t;
+                fps_time = curtime;
             }
 #endif
             redraw = false;
