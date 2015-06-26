@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
 	ALLEGRO_KEYBOARD_STATE keyboard_state;
     ALLEGRO_EVENT event;
     ALLEGRO_FONT *font;
-    ALLEGRO_BITMAP *clock_hand, *clock_quadrant;
+    ALLEGRO_BITMAP *clock_hand, *clock_quadrant, *bow, *sword;
     float clock_ray = 0, clock_angle = 0;
     int clock_ray_alpha;
     float soul_interval = SOUL_TIME_INTERVAL;
@@ -223,6 +223,10 @@ int main(int argc, char *argv[])
     fuzzy_iz_error(clock_hand, "Cannot load clock handle");
     clock_quadrant = al_load_bitmap(fuzzy_res(PICTURE_FOLDER, "clock_quadrant.png"));
     fuzzy_iz_error(clock_hand, "Cannot load clock quadrant");
+    bow = al_load_bitmap(fuzzy_res(PICTURE_FOLDER, "bow.png"));
+    fuzzy_iz_error(clock_hand, "Cannot load bow image");
+    sword = al_load_bitmap(fuzzy_res(PICTURE_FOLDER, "sword.png"));
+    fuzzy_iz_error(clock_hand, "Cannot load sword image");
 
 	/* Queue setup */
 	al_register_event_source(evqueue, al_get_display_event_source(display));
@@ -435,6 +439,14 @@ int main(int argc, char *argv[])
             al_draw_scaled_bitmap(clock_quadrant, 0, 0, 301, 301, 20, screen_height-80-139/2, 139, 139, 0);
             al_draw_scaled_rotated_bitmap(clock_hand, 160, 607, 90, screen_height-80, 0.11, 0.11, clock_angle, 0);
             al_draw_circle(90, screen_height-80, clock_ray, al_map_rgb(80, clock_ray_alpha, 80), 2.0);
+
+            /* draw weapon */
+            ALLEGRO_BITMAP * weapon;
+            if (chess->atkarea == &FuzzyMeleeMan)
+                weapon = sword;
+            else
+                weapon = bow;
+            al_draw_scaled_bitmap(weapon, 0, 0, 90, 90, 20, 20, 60, 60, 0);
 
             al_flip_display();
 #if DEBUG
