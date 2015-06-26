@@ -35,6 +35,7 @@
 #include "tiles.h"
 
 #define LINE_THICKNESS 2.5
+#define MAX_GROUP_CHARS 32
 
 static char LayerNames[][10] = {
     "LAYER_FLR",
@@ -57,14 +58,14 @@ struct _AnimationFrame {
 
 /** Holds a group of related animation frames */
 struct _AnimationGroup {
-    ulong id;                               /* id of the animation group */
+    char id[MAX_GROUP_CHARS];               /* id of the animation group */
     struct _AnimationFrame * frames;        /* list of animation frames */
     struct _AnimationGroup * next;
 };
 
 /** An animation instance object */
 struct _AnimatedSprite {
-    ulong grp;                              /* the group id used */
+    char grp[MAX_GROUP_CHARS];              /* the group id used */
     ulong x;                                /* x position in layer */
     ulong y;                                /* y position in layer */
     ulong curframe;                         /* fid of the current frame */
@@ -89,6 +90,8 @@ struct _TileInfo {
 };
 
 /*-------------------------- UTILITY METHODS -----------------------------*/
+
+#define _group_match(ga, gb) (strcmp((ga), (gb))==0)
 
 /** Get special flags from gid */
 static int _gid_extract_flags(unsigned int gid) {
@@ -126,7 +129,7 @@ static ulong _get_tile_ulong_property(tmx_tile * tile, char * prop)
     char * val;
 
     fuzzy_iz_error(val = _get_tile_property(tile, prop),
-      fuzzy_sformat("Missing '%s' mandatory property", prop)
+      fuzzy_sformat("Missing '%s' mandatory property for tile #%d", prop, tile->id)
     );
 
     return atol(val);
@@ -178,12 +181,12 @@ static struct _AnimationGroup * _get_sprite_group(FuzzyMap * fmap, struct _Anima
 
     group = fmap->groups;
     while (group) {
-        if (group->id == sprite->grp)
+        if (_group_match(group->id, sprite->grp))
             break;
         group = group->next;
     }
     if (group == NULL)
-        fuzzy_critical(fuzzy_sformat("Animation group #%d not loaded!", sprite->grp));
+        fuzzy_critical(fuzzy_sformat("Animation group #%s not loaded!", sprite->grp));
 
     return group;
 }
@@ -213,7 +216,7 @@ static struct _AnimationFrame * _get_sprite_frame(
         frame = frame->next;
     }
     if (frame == NULL)
-        fuzzy_critical(fuzzy_sformat("Cannot find animation frame '%d' for group #%d at %d,%d",
+        fuzzy_critical(fuzzy_sformat("Cannot find animation frame '%d' for group '%s' at %d,%d",
           sprite->curframe, sprite->grp, sprite->x, sprite->y));
 
     return frame;
@@ -265,30 +268,25 @@ void _layer_sprite_append(struct _AnimatedLayer * layer, struct _AnimatedSprite 
 }
 
 /** Look for a tileset containing the specified animation group */
-tmx_tileset * _get_tileset_for_group(FuzzyMap * fmap, ulong grp)
+tmx_tileset * _get_tileset_for_group(FuzzyMap * fmap, char * grp)
 {
     tmx_tile * tile;
     tmx_tileset * ts;
     char * grp_s;
-    ulong grp_l;
 
     ts = fmap->map->ts_head;
     while (ts) {
-        /* todo find grp */
         tile = ts->tiles;
         while(tile) {
             grp_s = _get_tile_property(tile, FUZZY_TILEPROP_ANIMATION_GROUP);
-            if (grp_s) {
-                grp_l = atol(grp_s);
-                if (grp_l == grp)
-                    return ts;
-            }
+            if (grp_s && _group_match(grp_s, grp))
+                return ts;
             tile = tile->next;
         }
         ts = ts->next;
     }
 
-    fuzzy_critical(fuzzy_sformat("Tileset for group %d not found", grp));
+    fuzzy_critical(fuzzy_sformat("Tileset for group '%s' not found", grp));
 }
 
 /** Find an animated sprite at coords in layer.
@@ -564,7 +562,7 @@ static struct _AnimatedLayer * _new_map_layer(FuzzyMap * fmap, tmx_layer * layer
 }
 
 /** Allocate a new _AnimatedSprite */
-static struct _AnimatedSprite * _new_sprite(ulong group)
+static struct _AnimatedSprite * _new_sprite(char * group)
 {
     struct _AnimatedSprite * sp;
 
@@ -572,7 +570,7 @@ static struct _AnimatedSprite * _new_sprite(ulong group)
     fuzzy_iz_perror(sp);
     sp->x = 0;
     sp->y = 0;
-    sp->grp = group;
+    strcpy(sp->grp, group);
     sp->curframe = 0;
     sp->difftime = 0;
     sp->next = NULL;
@@ -584,50 +582,47 @@ static void _load_group_frames(struct _AnimationGroup * group, tmx_tileset * ts)
     struct _AnimationFrame *frame, *cur;
     tmx_tile * tile;
     char * grp_s;
-    ulong grp, fid, msec;
+    ulong fid, msec;
 
-    fuzzy_debug(fuzzy_sformat("Loading animation group %ld", group->id));
+    fuzzy_debug(fuzzy_sformat("Loading animation group '%s'", group->id));
 
     tile = ts->tiles;
     while(tile) {
         grp_s = _get_tile_property(tile, FUZZY_TILEPROP_ANIMATION_GROUP);
-        if (grp_s) {
-            grp = atol(grp_s);
-            if (grp == group->id) {
-                fid = _get_tile_ulong_property(tile, FUZZY_TILEPROP_FRAME_ID);
-                msec = _get_tile_ulong_property(tile, FUZZY_TILEPROP_TRANSITION_TIME);
+        if (grp_s && _group_match(grp_s, group->id)) {
+            fid = _get_tile_ulong_property(tile, FUZZY_TILEPROP_FRAME_ID);
+            msec = _get_tile_ulong_property(tile, FUZZY_TILEPROP_TRANSITION_TIME);
 
-                /* compute tile offset in tileset */
-                uint id = tile->id;
-                uint ts_w = ts->image->width  - 2 * (ts->margin) + ts->spacing;
-				uint tiles_x_count = ts_w / (ts->tile_width  + ts->spacing);
-                uint tx = id % tiles_x_count;
-                uint ty = id / tiles_x_count;
+            /* compute tile offset in tileset */
+            uint id = tile->id;
+            uint ts_w = ts->image->width  - 2 * (ts->margin) + ts->spacing;
+            uint tiles_x_count = ts_w / (ts->tile_width  + ts->spacing);
+            uint tx = id % tiles_x_count;
+            uint ty = id / tiles_x_count;
 
-                frame = fuzzy_new(struct _AnimationFrame);
-                fuzzy_iz_perror(frame);
-                frame->fid = fid;
-                frame->tx = ts->margin + (tx * ts->tile_width)  + (tx * ts->spacing);
-                frame->ty = ts->margin + (ty * ts->tile_height) + (ty * ts->spacing);
-                frame->transtime = (msec * 1.) / 1000;
-                frame->next = NULL;
+            frame = fuzzy_new(struct _AnimationFrame);
+            fuzzy_iz_perror(frame);
+            frame->fid = fid;
+            frame->tx = ts->margin + (tx * ts->tile_width)  + (tx * ts->spacing);
+            frame->ty = ts->margin + (ty * ts->tile_height) + (ty * ts->spacing);
+            frame->transtime = (msec * 1.) / 1000;
+            frame->next = NULL;
 
-                /* add to frame list */
-                if (group->frames == NULL)
-                    group->frames = frame;
-                else {
-                    /* find a place */
-                    cur = group->frames;
-                    while (cur->next != NULL && cur->fid <= fid) {
-                        if (cur->fid == fid)
-                            fuzzy_critical(fuzzy_sformat("Frame '%d' for group #%d already loaded!",
-                                fid, grp)
-                            );
-                        cur = cur->next;
-                    }
-                    frame->next = cur->next;
-                    cur->next = frame;
+            /* add to frame list */
+            if (group->frames == NULL)
+                group->frames = frame;
+            else {
+                /* find a place */
+                cur = group->frames;
+                while (cur->next != NULL && cur->fid <= fid) {
+                    if (cur->fid == fid)
+                        fuzzy_critical(fuzzy_sformat("Frame '%d' for group '%s' already loaded!",
+                            fid, grp_s)
+                        );
+                    cur = cur->next;
                 }
+                frame->next = cur->next;
+                cur->next = frame;
             }
         }
         tile = tile->next;
@@ -637,14 +632,14 @@ static void _load_group_frames(struct _AnimationGroup * group, tmx_tileset * ts)
 /** Ensures the animation loop for [grp] id is loaded into FuzzyMap groups.
     Returns the group.
  */
-static struct _AnimationGroup * _load_animation_group(FuzzyMap * fmap, ulong grp, tmx_tileset * ts)
+static struct _AnimationGroup * _load_animation_group(FuzzyMap * fmap, char * grp, tmx_tileset * ts)
 {
     struct _AnimationGroup *group, *last;
 
     /* look for existing group */
     group = fmap->groups;
     while (group) {
-        if (group->id == grp)
+        if (_group_match(group->id, grp))
             break;
         group = group->next;
     }
@@ -653,7 +648,7 @@ static struct _AnimationGroup * _load_animation_group(FuzzyMap * fmap, ulong grp
         /* load a new one */
         group = fuzzy_new(struct _AnimationGroup);
         fuzzy_iz_perror(group);
-        group->id = grp;
+        strcpy(group->id, grp);
         group->frames = NULL;
         group->next = NULL;
         _load_group_frames(group, ts);
@@ -681,7 +676,6 @@ static struct _AnimatedLayer * _discover_layer_sprites(FuzzyMap * fmap, tmx_laye
     tmx_tile * tile;
     tmx_tileset * ts;
     char * grp_s;
-    ulong grp;
     tmx_map * map = fmap->map;
     uint _x, _y;
 
@@ -698,13 +692,11 @@ static struct _AnimatedLayer * _discover_layer_sprites(FuzzyMap * fmap, tmx_laye
             if (tile) {
                 grp_s = _get_tile_property(tile, FUZZY_TILEPROP_ANIMATION_GROUP);
                 if (grp_s) {
-                    grp = atol(grp_s);
-
                     fuzzy_iz_error(ts = tmx_get_tileset(map, gid, &_x, &_y), "Tileset cannot be Null here!");
-                    _load_animation_group(fmap, grp, ts);
+                    _load_animation_group(fmap, grp_s, ts);
 
                     /* create a sprite descriptor */
-                    obj = _new_sprite(grp);
+                    obj = _new_sprite(grp_s);
                     obj->x = j;
                     obj->y = i;
 
@@ -874,7 +866,7 @@ void fuzzy_map_unload(FuzzyMap * fmap)
     free(fmap);
 }
 
-void fuzzy_sprite_create(FuzzyMap * map, uint lid, ulong grp, ulong x, ulong y)
+void fuzzy_sprite_create(FuzzyMap * map, uint lid, char * grp, ulong x, ulong y)
 {
     struct _AnimatedSprite * sprite;
     tmx_tileset * ts;
@@ -981,7 +973,7 @@ void fuzzy_sprite_move(FuzzyMap * map, uint lid, ulong ox, ulong oy, ulong nx, u
 
     sprite = _get_sprite_at(elayer, nx, ny, NULL);
     if (sprite != NULL)
-        fuzzy_critical(fuzzy_sformat("Destination position %d,%d is not empty, contains one in group %d",
+        fuzzy_critical(fuzzy_sformat("Destination position %d,%d is not empty, contains one in group '%s'",
           nx, ny, sprite->grp));
     sprite = _get_sprite_at(elayer, ox, oy, NULL);
     if (sprite == NULL)

@@ -8,42 +8,42 @@
   <tile id="6">
    <properties>
     <property name="f" value="0"/>
-    <property name="g" value="0"/>
+    <property name="g" value="cloud_00"/>
     <property name="t" value="700"/>
    </properties>
   </tile>
   <tile id="7">
    <properties>
     <property name="f" value="0"/>
-    <property name="g" value="1"/>
+    <property name="g" value="cloud_01"/>
     <property name="t" value="700"/>
    </properties>
   </tile>
   <tile id="8">
    <properties>
     <property name="f" value="0"/>
-    <property name="g" value="2"/>
+    <property name="g" value="cloud_02"/>
     <property name="t" value="700"/>
    </properties>
   </tile>
   <tile id="12">
    <properties>
     <property name="f" value="1"/>
-    <property name="g" value="0"/>
+    <property name="g" value="cloud_00"/>
     <property name="t" value="300"/>
    </properties>
   </tile>
   <tile id="13">
    <properties>
     <property name="f" value="1"/>
-    <property name="g" value="1"/>
+    <property name="g" value="cloud_01"/>
     <property name="t" value="300"/>
    </properties>
   </tile>
   <tile id="14">
    <properties>
     <property name="f" value="1"/>
-    <property name="g" value="2"/>
+    <property name="g" value="cloud_02"/>
     <property name="t" value="300"/>
    </properties>
   </tile>
@@ -53,56 +53,119 @@
   <tile id="28">
    <properties>
     <property name="f" value="0"/>
-    <property name="g" value="5"/>
+    <property name="g" value="link_1"/>
     <property name="t" value="200"/>
    </properties>
   </tile>
   <tile id="29">
    <properties>
     <property name="f" value="1"/>
-    <property name="g" value="5"/>
+    <property name="g" value="link_1"/>
     <property name="t" value="200"/>
+   </properties>
+  </tile>
+  <tile id="35">
+   <properties>
+    <property name="f" value="0"/>
+    <property name="g" value="zelda_0"/>
+    <property name="t" value="2000"/>
+   </properties>
+  </tile>
+  <tile id="36">
+   <properties>
+    <property name="f" value="1"/>
+    <property name="g" value="zelda_0"/>
+    <property name="t" value="800"/>
    </properties>
   </tile>
   <tile id="54">
    <properties>
     <property name="f" value="0"/>
-    <property name="g" value="7"/>
+    <property name="g" value="attack_area"/>
     <property name="t" value="300"/>
    </properties>
   </tile>
   <tile id="55">
    <properties>
     <property name="f" value="1"/>
-    <property name="g" value="7"/>
+    <property name="g" value="attack_area"/>
     <property name="t" value="300"/>
    </properties>
   </tile>
   <tile id="67">
    <properties>
     <property name="f" value="0"/>
-    <property name="g" value="6"/>
+    <property name="g" value="chess_sel"/>
     <property name="t" value="1000"/>
+   </properties>
+  </tile>
+  <tile id="105">
+   <properties>
+    <property name="f" value="0"/>
+    <property name="g" value="enemy_2"/>
+    <property name="t" value="1000"/>
+   </properties>
+  </tile>
+  <tile id="106">
+   <properties>
+    <property name="f" value="1"/>
+    <property name="g" value="enemy_2"/>
+    <property name="t" value="1000"/>
+   </properties>
+  </tile>
+  <tile id="107">
+   <properties>
+    <property name="f" value="2"/>
+    <property name="g" value="enemy_2"/>
+    <property name="t" value="1000"/>
+   </properties>
+  </tile>
+  <tile id="108">
+   <properties>
+    <property name="f" value="3"/>
+    <property name="g" value="enemy_2"/>
+    <property name="t" value="1000"/>
+   </properties>
+  </tile>
+  <tile id="142">
+   <properties>
+    <property name="f" value="0"/>
+    <property name="g" value="enemy_1"/>
+    <property name="t" value="900"/>
+   </properties>
+  </tile>
+  <tile id="143">
+   <properties>
+    <property name="f" value="1"/>
+    <property name="g" value="enemy_1"/>
+    <property name="t" value="300"/>
+   </properties>
+  </tile>
+  <tile id="144">
+   <properties>
+    <property name="f" value="2"/>
+    <property name="g" value="enemy_1"/>
+    <property name="t" value="300"/>
    </properties>
   </tile>
   <tile id="162">
    <properties>
     <property name="f" value="0"/>
-    <property name="g" value="4"/>
+    <property name="g" value="enemy_0"/>
     <property name="t" value="400"/>
    </properties>
   </tile>
   <tile id="163">
    <properties>
     <property name="f" value="1"/>
-    <property name="g" value="4"/>
+    <property name="g" value="enemy_0"/>
     <property name="t" value="400"/>
    </properties>
   </tile>
   <tile id="164">
    <properties>
     <property name="f" value="2"/>
-    <property name="g" value="4"/>
+    <property name="g" value="enemy_0"/>
     <property name="t" value="500"/>
    </properties>
   </tile>
@@ -119,7 +182,7 @@
  </layer>
  <layer name="LAYER_SPR" width="70" height="50">
   <data encoding="base64" compression="zlib">
-   eJzt11sOhCAQRFHD/nflxoxfGtNAN76guCfxY6QhUgFGlwUAAAC79OI1Mu/zR+c7Sy69jPuV0vqP7JVrDiq55NpqfXO1Crm0tNVq1XI5r5/WPWWNO5rWXKz7pXFHE9lHnvPWM+4I7p4v1trx9u1Zbl7n35H/6hlyKdXm2hVz+au2R5G9khr6KLNygd67yVPIxcY+OkTO3ZlY8/XeU0YuNs8342rUqfPOl1zu1anwvuvPlgsAAAAAAACw2wAbOAI6
+   eJzt12EKwjAMhuGys3k8PYvbGXYxKTgsJclSdT+Svg8UsU3L+rHOWQoAAACq5cIWmff6R/ebNZf7RetGYd3/nrPyeLc+hyy5aGNnc7XaDLl4x9aB2my5tPfP8fksvjNlrRuNJ5e2/2g3od9aN5qRc9RnsCrztf5I2uvfjDHPfO1ei0jbV/vd+1yZJRerVhvPmEtvV2qt32vPuhGMnJXlizmZSbkg37vJv5CLjHP0MfLcnYm0X29fZuQiO/vPWO1CXXbe/ZLLb3VZeN/1Z8sFAAAAAAAAqF4KKAkH
   </data>
  </layer>
  <layer name="LAYER_ABO" width="70" height="50">

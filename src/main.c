@@ -35,9 +35,9 @@
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 480
 
-#define TID_LINK 5
-#define TID_TARGET 6
-#define TID_ATTACK_AREA 7
+#define GID_LINK "link_1"
+#define GID_TARGET "chess_sel"
+#define GID_ATTACK_AREA "attack_area"
 
 typedef struct Chess {
     ulong x;
@@ -62,7 +62,7 @@ static void _chess_move(Chess * chess, ulong nx, ulong ny)
 
 static Chess * _chess_new(ulong x, ulong y)
 {
-    const ulong grp = TID_LINK;
+    const ulong grp = GID_LINK;
     Chess * chess = fuzzy_new(Chess);
     chess->x = x;
     chess->y = y;
@@ -89,14 +89,14 @@ static void _chess_show_attack_area(Chess * chess)
     const ulong x = chess->x;
     const ulong y = chess->y;
     
-    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_ATTACK_AREA, x-1, y);
-    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_ATTACK_AREA, x+1, y);
-    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_ATTACK_AREA, x, y-1);
-    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_ATTACK_AREA, x, y+1);
-    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_ATTACK_AREA, x-1, y-1);
-    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_ATTACK_AREA, x-1, y+1);
-    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_ATTACK_AREA, x+1, y+1);
-    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_ATTACK_AREA, x+1, y-1);
+    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, x-1, y);
+    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, x+1, y);
+    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, x, y-1);
+    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, x, y+1);
+    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, x-1, y-1);
+    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, x-1, y+1);
+    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, x+1, y+1);
+    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, x+1, y-1);
 }
 
 static void _chess_hide_attack_area(Chess * chess)
@@ -304,7 +304,7 @@ int main(int argc, char *argv[])
                     /* select chess */
                     if (chess->x == tx && chess->y == ty) {
                         if (! chess->target) {
-                            fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_TARGET, tx, ty);
+                            fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_TARGET, tx, ty);
                             chess->target = true;
                         }
                     } else if (chess->target) {

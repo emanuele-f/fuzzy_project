@@ -115,7 +115,7 @@ FUZZY_CELL_TYPE fuzzy_map_spy(FuzzyMap * fmap, uint lid, ulong x, ulong y);
 
     \note an error is raised if given position is not empty
  */
-void fuzzy_sprite_create(FuzzyMap * map, uint lid, ulong grp, ulong x, ulong y);
+void fuzzy_sprite_create(FuzzyMap * map, uint lid, char * grp, ulong x, ulong y);
 
 /** Destroy a new sprite at (x, y)
 
