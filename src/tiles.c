@@ -709,6 +709,10 @@ static struct _AnimatedLayer * _discover_layer_sprites(FuzzyMap * fmap, tmx_laye
                     obj = _new_sprite(grp_s);
                     obj->x = j;
                     obj->y = i;
+                    
+                    /* set intial animation frame */
+                    ulong fframe = _get_tile_ulong_property(tile, FUZZY_TILEPROP_FRAME_ID);
+                    obj->curframe = fframe;
 
                     /* add to layer list */
                     if (last != NULL)
