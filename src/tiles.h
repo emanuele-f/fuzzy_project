@@ -112,6 +112,17 @@ bool fuzzy_map_spy(FuzzyMap * fmap, uint lid, ulong x, ulong y);
  */
 void fuzzy_sprite_create(FuzzyMap * map, uint lid, ulong grp, ulong x, ulong y);
 
+/** Destroy a new sprite at (x, y)
+
+    \param map object
+    \param lid layer id, where to create the sprite
+    \param x target
+    \param y target
+
+    \note an error is raised if given position is empty
+ */
+void fuzzy_sprite_destroy(FuzzyMap * map, uint lid, ulong x, ulong y);
+
 /** Moves a sprite to (ox, oy) to (nx, ny)
 
     \param map object

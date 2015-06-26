@@ -34,11 +34,13 @@
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 480
 
-#define LINK_TILE_ID 5
+#define TID_LINK 5
+#define TID_TARGET 6
 
 typedef struct Chess {
     ulong x;
     ulong y;
+    bool target;
 }Chess;
 
 FuzzyMap * map;
@@ -48,7 +50,9 @@ static void _chess_move(Chess * chess, ulong nx, ulong ny)
     if (fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, nx, ny))
         // collision
         return;
-
+    
+    if (chess->target)
+        fuzzy_sprite_move(map, FUZZY_LAYER_BELOW, chess->x, chess->y, nx, ny);
     fuzzy_sprite_move(map, FUZZY_LAYER_SPRITES, chess->x, chess->y, nx, ny);
     chess->x = nx;
     chess->y = ny;
@@ -56,14 +60,26 @@ static void _chess_move(Chess * chess, ulong nx, ulong ny)
 
 static Chess * _chess_new(ulong x, ulong y)
 {
-    const ulong grp = LINK_TILE_ID;
+    const ulong grp = TID_LINK;
     Chess * chess = fuzzy_new(Chess);
     chess->x = x;
     chess->y = y;
+    chess->target = false;
 
     fuzzy_sprite_create(map, FUZZY_LAYER_SPRITES, grp, x, y);
 
     return chess;
+}
+
+static void _chess_free(Chess * chess)
+{
+    const ulong x = chess->x;
+    const ulong y = chess->y;
+    
+    if (chess->target)
+        fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x, y);
+    fuzzy_sprite_destroy(map, FUZZY_LAYER_SPRITES, x, y);
+    free(chess);
 }
 
 int main(int argc, char *argv[])
@@ -193,6 +209,13 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
                 printf("SELECT %d %d\n", tx, ty);
 #endif
+                if (chess->x == tx && chess->y == ty) {
+                    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_TARGET, tx, ty);
+                    chess->target = true;
+                } else if (chess->target) {
+                    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, chess->x, chess->y);
+                    chess->target = false;
+                }
             }
             break;
         default:

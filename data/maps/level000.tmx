@@ -64,6 +64,13 @@
     <property name="t" value="200"/>
    </properties>
   </tile>
+  <tile id="67">
+   <properties>
+    <property name="f" value="0"/>
+    <property name="g" value="6"/>
+    <property name="t" value="1000"/>
+   </properties>
+  </tile>
   <tile id="162">
    <properties>
     <property name="f" value="0"/>
@@ -88,12 +95,12 @@
  </tileset>
  <layer name="LAYER_FLR" width="70" height="50">
   <data encoding="base64" compression="zlib">
-   eJztwTEBAAAAwqD1T20IX6AAAAAAAAAAAAAAAAAA4Dc2sAAB
+   eJzt1bENgDAQBEG7/6YdkqyQQSIxM9IV8Jv8GAAAcG9+sBPo0nRpujRdmi5Nl6ZL06Xp0nRpurz3x5t36NJ0abo0XZouF/+46dJ0abo0XQAAAACAJxbiyQE8
   </data>
  </layer>
  <layer name="LAYER_BEL" width="70" height="50">
   <data encoding="base64" compression="zlib">
-   eJzt1bENgDAQBEG7/6YdkqyQQSIxM9IV8Jv8GAAAcG9+sBPo0nRpujRdmi5Nl6ZL06Xp0nRpurz3x5t36NJ0abo0XZouF/+46dJ0abo0XQAAAACAJxbiyQE8
+   eJztwTEBAAAAwqD1T20IX6AAAAAAAAAAAAAAAAAA4Dc2sAAB
   </data>
  </layer>
  <layer name="LAYER_SPR" width="70" height="50">

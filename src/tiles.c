@@ -283,18 +283,25 @@ tmx_tileset * _get_tileset_for_group(FuzzyMap * fmap, ulong grp)
 }
 
 /** Find an animated sprite at coords in layer.
+    \param precsprite if not NULL, will point to preceding sprite
 
     \retval sprite on success
     \retval NULL on not found
  */
-static struct _AnimatedSprite * _get_sprite_at(struct _AnimatedLayer * elayer, ulong x, ulong y)
+static struct _AnimatedSprite * _get_sprite_at(struct _AnimatedLayer * elayer, ulong x, ulong y, struct _AnimatedSprite ** precsprite)
 {
     struct _AnimatedSprite * sprite;
+    struct _AnimatedSprite * prec;
 
+    prec = NULL;
     sprite = elayer->sprites;
     while(sprite) {
-        if (sprite->x == x && sprite->y == y)
+        if (sprite->x == x && sprite->y == y) {
+            if (precsprite != NULL)
+                *precsprite = prec;
             return sprite;
+        }
+        prec = sprite;
         sprite = sprite->next;
     }
     return NULL;
@@ -379,7 +386,7 @@ static void _render_layer(FuzzyMap *fmap, tmx_layer *layer, struct _AnimatedLaye
                 tileset = (ALLEGRO_BITMAP*)ts->image->resource_image;
                 flags = _gid_extract_flags(_get_gid_in_layer(map, layer, j, i));
 
-                if (! _get_sprite_at(elayer, j, i)) {
+                if (! _get_sprite_at(elayer, j, i, NULL)) {
                     /* standard tile*/
                     al_draw_tinted_bitmap_region(tileset, al_map_rgba_f(op, op, op, op),
                       x, y, w, h, j*ts->tile_width, i*ts->tile_height, flags);
@@ -846,16 +853,34 @@ void fuzzy_sprite_create(FuzzyMap * map, uint lid, ulong grp, ulong x, ulong y)
     _layer_sprite_append(map->elayers[lid], sprite);
 }
 
+void fuzzy_sprite_destroy(FuzzyMap * map, uint lid, ulong x, ulong y)
+{
+    struct _AnimatedSprite * sprite, * prec;
+    struct _AnimatedLayer * elayer = map->elayers[lid];
+    
+    sprite = _get_sprite_at(elayer, x, y, &prec);
+    if (sprite == NULL)
+        fuzzy_critical("Target position is empty");
+        
+    /* do delete from list */
+    if (prec == NULL)
+        elayer->sprites = sprite->next;
+    else
+        prec->next = sprite->next;
+        
+    free(sprite);
+}
+
 void fuzzy_sprite_move(FuzzyMap * map, uint lid, ulong ox, ulong oy, ulong nx, ulong ny)
 {
     struct _AnimatedSprite * sprite;
     struct _AnimatedLayer * elayer = map->elayers[lid];
 
-    sprite = _get_sprite_at(elayer, nx, ny);
+    sprite = _get_sprite_at(elayer, nx, ny, NULL);
     if (sprite != NULL)
         fuzzy_critical(fuzzy_sformat("Destination position %d,%d is not empty, contains one in group %d",
           nx, ny, sprite->grp));
-    sprite = _get_sprite_at(elayer, ox, oy);
+    sprite = _get_sprite_at(elayer, ox, oy, NULL);
     if (sprite == NULL)
         fuzzy_critical(fuzzy_sformat("Source position %d,%d does not contain a sprite",
           ox, oy));
