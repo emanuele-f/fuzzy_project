@@ -37,7 +37,7 @@ typedef bool FuzzyArea[FUZZY_AREA_NROWS][FUZZY_AREA_NCOLS];
     \note width and height must be odd numbers
     \note the prototype area is expanded to FUZZY_AREA_NROWSxFUZZY_AREA_NCOLS
  */
-void fuzzy_area_prototype(FuzzyArea * area, uint width, uint height);
+void fuzzy_area_prototype(FuzzyArea area, uint width, uint height);
 
 /** Checks if given point is inside area descriptor.
  
@@ -48,14 +48,14 @@ void fuzzy_area_prototype(FuzzyArea * area, uint width, uint height);
    \retval true is inside
    \retval false is outside
  */
-void fuzzy_area_inside(const FuzzyArea * area, const FuzzyPoint * pivot, const FuzzyPoint * check);
+void fuzzy_area_inside(const FuzzyArea area, const FuzzyPoint * pivot, const FuzzyPoint * check);
 
 /** Initializes the iterator for the iteration.
     \param area
     \param pivot central area point
     \param iterator the variable to initialize
  */
-void fuzzy_area_iter_begin(const FuzzyArea * area, const FuzzyPoint * pivot, FuzzyPoint ** iterator);
+void fuzzy_area_iter_begin(const FuzzyArea area, const FuzzyPoint * pivot, FuzzyPoint ** iterator);
 
 /** Iterates through the area cells
     
@@ -67,6 +67,6 @@ void fuzzy_area_iter_begin(const FuzzyArea * area, const FuzzyPoint * pivot, Fuz
     \retval the same iterator value
     \retval NULL if iteration is finished
  */
-FuzzyPoint * fuzzy_area_iter(const FuzzyArea * area, const FuzzyPoint * pivot, FuzzyPoint ** iterator);
+FuzzyPoint * fuzzy_area_iter(const FuzzyArea area, const FuzzyPoint * pivot, FuzzyPoint ** iterator);
 
 void fuzzy_areadb_init();

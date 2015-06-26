@@ -21,29 +21,33 @@
 #define _central_x (FUZZY_AREA_NCOLS / 2 + 1)
 #define _central_y (FUZZY_AREA_NROWS / 2 + 1)
 
-FuzzyArea RangedMan = {
-    {1, 1, 1},
-    {1, 0, 1},
-    {1, 1, 1}
+FuzzyArea FuzzyRangedMan = {
+    {0, 0, 1, 1, 1, 0, 0},
+    {0, 1, 1, 1, 1, 1, 0},
+    {1, 1, 0, 0, 0, 1, 1},
+    {1, 1, 0, 0, 0, 1, 1},
+    {1, 1, 0, 0, 0, 1, 1},
+    {0, 1, 1, 1, 1, 1, 0},
+    {0, 0, 1, 1, 1, 0, 0},
 };
 
-static void _dump_area(FuzzyArea * area)
+static void _dump_area(FuzzyArea area)
 {
     uint i, j;
     
     for(i=0; i<FUZZY_AREA_NROWS; i++) {
         for(j=0; j<FUZZY_AREA_NCOLS; j++)
-            printf("%d ", (*area)[i][j]);
+            printf("%d ", area[i][j]);
         puts("");
     }
 }
 
-void fuzzy_area_prototype(FuzzyArea * area, uint width, uint height)
+void fuzzy_area_prototype(FuzzyArea area, uint width, uint height)
 {
     FuzzyArea support;
     uint i, j, xoff, yoff;
     
-    //~ _dump_area(area);
+    _dump_area(area);
     
     if (width % 2 == 0)
         fuzzy_critical(fuzzy_sformat("Prototype width is not odd: %d", width));
@@ -65,22 +69,22 @@ void fuzzy_area_prototype(FuzzyArea * area, uint width, uint height)
     yoff = (FUZZY_AREA_NCOLS-width)/2;
     for (i=0; i<height; i++)
         for(j=0; j<width; j++)
-            support[i+xoff][j+yoff] = (*area)[i][j];
+            support[i+xoff][j+yoff] = area[i][j];
             
     /* copy back to origin */
     for(i=0; i<FUZZY_AREA_NROWS; i++)
         for(j=0; j<FUZZY_AREA_NCOLS; j++)
-            (*area)[i][j] = support[i][j];
+            area[i][j] = support[i][j];
     
-    //~ puts("");
-    //~ _dump_area(area);
+    puts("");
+    _dump_area(area);
 }
 
 void fuzzy_areadb_init()
 {
     fuzzy_debug("Generating area sets...");
     
-    fuzzy_area_prototype(&RangedMan, 3, 3);
+    fuzzy_area_prototype(FuzzyRangedMan, 7, 7);
     
-    fuzzy_debug("done");
+    fuzzy_debug("Generation done");
 }
