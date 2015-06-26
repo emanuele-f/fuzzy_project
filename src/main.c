@@ -113,14 +113,13 @@ static void _chess_hide_attack_area(Chess * chess)
     fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x+1, y-1);
 }
 
-static bool _chess_inside_target_area(Chess * chess, ulong tx, ulong ty)
+static bool _is_inside_target_area(Chess * chess, ulong tx, ulong ty)
 {
     if (tx == chess->x && ty == chess->y)
         return false;
         
     if (tx >= chess->x-1 && tx <= chess->x+1 &&
-      ty >= chess->y-1 && ty <= chess->y+1 &&
-      fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, tx, ty) == FUZZY_CELL_SPRITE
+      ty >= chess->y-1 && ty <= chess->y+1
     )   return true;
             
     return false;
@@ -237,8 +236,11 @@ int main(int argc, char *argv[])
             redraw = true;
             break;
         case ALLEGRO_EVENT_KEY_DOWN:
-            /* abort attack */
+            if(! chess->target)
+                break;
+                
             if (showing_area) {
+                /* abort attack */
                 _chess_hide_attack_area(chess);
                 showing_area = false;
             }
@@ -258,10 +260,8 @@ int main(int argc, char *argv[])
                     break;
                     
                 case ALLEGRO_KEY_K:
-                    if(chess->target) {
-                        _chess_show_attack_area(chess);
-                        showing_area = true;
-                    }
+                    _chess_show_attack_area(chess);
+                    showing_area = true;
                     break;
             }
             break;
@@ -280,19 +280,28 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
                 printf("SELECT %d %d\n", tx, ty);
 #endif
-                if(showing_area && _chess_inside_target_area(chess, tx, ty)) {
+                if(showing_area && _is_inside_target_area(chess, tx, ty)) {
                     /* select attack target */
-                    _do_attack(chess, tx, ty);
-                    _chess_hide_attack_area(chess);
-                    showing_area = false;
+                    if (fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, tx, ty) == FUZZY_CELL_SPRITE) {
+                        _do_attack(chess, tx, ty);
+                        _chess_hide_attack_area(chess);
+                        showing_area = false;
+                    }
                 } else {
                     /* select chess */
                     if (chess->x == tx && chess->y == ty) {
                         fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_TARGET, tx, ty);
                         chess->target = true;
                     } else if (chess->target) {
-                        fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, chess->x, chess->y);
-                        chess->target = false;
+                        if (showing_area) {
+                            /* abort attack */
+                            _chess_hide_attack_area(chess);
+                            showing_area = false;
+                        } else {
+                            /* remove target */
+                            fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, chess->x, chess->y);
+                            chess->target = false;
+                        }
                     }
                 }
             }
