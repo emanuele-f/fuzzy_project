@@ -16,6 +16,9 @@
  * Contains animation groups ids definitions.
  * 
  */
+ 
+#ifndef __FUZZY_GIDS_H
+#define __FUZZY_GIDS_H
 
 /* Misc */
 #define GID_TARGET              "chess_sel"
@@ -30,3 +33,5 @@
 /* Environment */
 #define GID_CLOUD_0             "cloud_0"
 #define GID_CLOUD_1             "cloud_1"
+
+#endif
