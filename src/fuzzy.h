@@ -42,6 +42,11 @@
 typedef unsigned int uint;
 typedef unsigned long int ulong;
 
+typedef struct FuzzyPoint {
+    ulong x;
+    ulong y;
+} FuzzyPoint;
+
 #define fuzzy_min(x, y) (x < y ? x : y)
 #define fuzzy_max(x, y) (x > y ? x : y)
 #define fuzzy_abs(x) ((x) >= 0 ? (x) : -(x))
