@@ -21,21 +21,19 @@
 #include <allegro5/allegro.h>
 #include "fuzzy.h"
 
-#define FUZZY_LAYERS_N 5
-
 /* Map properties names */
 #define FUZZY_TILEPROP_ANIMATION_GROUP "g"
 #define FUZZY_TILEPROP_FRAME_ID "f"
 #define FUZZY_TILEPROP_TRANSITION_TIME "t"
 
 typedef enum FUZZY_LAYERS {
-    FUZZY_LAYER_BGD = 0,
-    FUZZY_LAYER_OBJ = 1,
-    FUZZY_LAYER_OVR = 2,
-    FUZZY_LAYER_SKY = 3
+    FUZZY_LAYER_GROUND = 0,
+    FUZZY_LAYER_BELOW = 1,
+    FUZZY_LAYER_SPRITES = 2,
+    FUZZY_LAYER_ABOVE = 3,
+    FUZZY_LAYER_SKY = 4
 } FUZZY_LAYERS;
-
-#define FUZZY_LAYER_SPRITES 1
+#define FUZZY_LAYERS_N 5
 
 /** Holds map status and data. */
 typedef struct FuzzyMap {

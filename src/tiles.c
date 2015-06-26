@@ -18,11 +18,11 @@
 /* Access tiled functionalities and exploits it to build a dynamic environment
  *
  * Definition: each tile map for this project is structured into 5 layers:
- *  LAYER_FLR: the floar
- *  LAYER_COL: collision objects
- *  LAYER_OBJ: where the game sprites move
- *  LAYER_OVR: anything over the game sprites, like the fortess
- *  LAYER_SKY: up above
+ *  LAYER_FLR: the floor, such as grass or cement
+ *  LAYER_BEL: layer below the sprites
+ *  LAYER_SPR: sprites layer
+ *  LAYER_OVR: layer over the sprites
+ *  LAYER_SKY: above everything
  */
 
 #include <stdio.h>
@@ -36,11 +36,11 @@
 
 #define LINE_THICKNESS 2.5
 
-static char LayerName[][10] = {
-    "LAYER_SUB",
-    "LAYER_BGD",
-    "LAYER_OBJ",
-    "LAYER_OVR",
+static char LayerNames[][10] = {
+    "LAYER_FLR",
+    "LAYER_BEL",
+    "LAYER_SPR",
+    "LAYER_ABO",
     "LAYER_SKY"
 };
 
@@ -509,7 +509,7 @@ static struct _AnimatedLayer * _new_map_layer(FuzzyMap * fmap, tmx_layer * layer
 {
     struct _AnimatedLayer * elayer;
 
-    elayer = (struct _AnimatedLayer *) malloc(sizeof(struct _AnimatedLayer));
+    elayer = fuzzy_new(struct _AnimatedLayer);
     fuzzy_iz_perror(elayer);
 
     elayer->lid = id;
@@ -523,7 +523,7 @@ static struct _AnimatedSprite * _new_sprite(ulong group)
 {
     struct _AnimatedSprite * sp;
 
-    sp = (struct _AnimatedSprite *) malloc(sizeof(struct _AnimatedSprite));
+    sp = fuzzy_new(struct _AnimatedSprite);
     fuzzy_iz_perror(sp);
     sp->x = 0;
     sp->y = 0;
@@ -559,7 +559,7 @@ static void _load_group_frames(struct _AnimationGroup * group, tmx_tileset * ts)
                 uint tx = id % tiles_x_count;
                 uint ty = id / tiles_x_count;
 
-                frame = (struct _AnimationFrame *) malloc(sizeof(struct _AnimationFrame));
+                frame = fuzzy_new(struct _AnimationFrame);
                 fuzzy_iz_perror(frame);
                 frame->fid = fid;
                 frame->tx = ts->margin + (tx * ts->tile_width)  + (tx * ts->spacing);
@@ -606,7 +606,7 @@ static struct _AnimationGroup * _load_animation_group(FuzzyMap * fmap, ulong grp
 
     if (group == NULL) {
         /* load a new one */
-        group = (struct _AnimationGroup *) malloc(sizeof(struct _AnimationGroup));
+        group = fuzzy_new(struct _AnimationGroup);
         fuzzy_iz_perror(group);
         group->id = grp;
         group->frames = NULL;
@@ -702,7 +702,7 @@ static void _fuzzy_map_initialize(FuzzyMap * fmap)
     nlayers = i;
 
     /* allocate structure */
-    elayers = (struct _AnimatedLayer **) malloc(sizeof(struct _AnimatedLayer **) * nlayers);
+    elayers = fuzzy_newarr(struct _AnimatedLayer *, nlayers);
     fuzzy_iz_perror(elayers);
 
     /* fill sprite layers */
@@ -717,6 +717,25 @@ static void _fuzzy_map_initialize(FuzzyMap * fmap)
     fmap->elayers = elayers;
 }
 
+static void _map_validate(tmx_map * map)
+{
+    tmx_layer * layer;
+    int i;
+    
+    layer = map->ly_head;
+    for (i=0; i<FUZZY_LAYERS_N; i++) {
+        if (layer->type != L_LAYER)
+            fuzzy_critical("Only L_LAYER layers are supported!");
+        
+        if (layer == NULL)
+            fuzzy_critical(fuzzy_sformat("Missing layer '%s'", LayerNames[i]));
+            
+        if (strcmp(layer->name, LayerNames[i]) != 0)
+            fuzzy_critical(fuzzy_sformat("Expected layer '%s' but got '%s'", LayerNames[i], layer->name));
+        layer = layer->next;
+    }
+}
+
 FuzzyMap * fuzzy_map_load(char * mapfile)
 {
     tmx_map * map;
@@ -725,8 +744,9 @@ FuzzyMap * fuzzy_map_load(char * mapfile)
 
     fname = fuzzy_sformat("%s%s%s", MAP_FOLDER, _DSEP, mapfile);
     fuzzy_iz_tmxerror(map = tmx_load(fname));
+    _map_validate(map);
 
-    fuzzy_iz_perror(fmap = (FuzzyMap *) malloc(sizeof(FuzzyMap)));
+    fmap = fuzzy_new(FuzzyMap);
     fmap->map = map;
     fmap->elayers = NULL;
     fmap->groups = NULL;
@@ -745,23 +765,6 @@ FuzzyMap * fuzzy_map_load(char * mapfile)
     _fuzzy_map_initialize(fmap);
     return fmap;
 }
-
-/* true if maps has correct structure */
-/*
-bool fuzzy_map_validate(ALLEGRO_MAP * map)
-{
-    int i;
-
-    for (i=0; i<FUZZY_LAYERS_N; i++) {
-        if (al_get_map_layer(map, LayerName[i]) == NULL) {
-            fuzzy_warning(fuzzy_sformat("Missing layer '%s'", LayerName[i]));
-            return false;
-        }
-    }
-    return true;
-}
-*/
-
 
 /*--------------------------- CLEAUP METHODS -----------------------------*/
 

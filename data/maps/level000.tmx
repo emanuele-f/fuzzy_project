@@ -86,20 +86,22 @@
    </properties>
   </tile>
  </tileset>
- <layer name="LAYER_BGD" width="70" height="50">
+ <layer name="LAYER_FLR" width="70" height="50">
+  <data encoding="base64" compression="zlib">
+   eJztwTEBAAAAwqD1T20IX6AAAAAAAAAAAAAAAAAA4Dc2sAAB
+  </data>
+ </layer>
+ <layer name="LAYER_BEL" width="70" height="50">
   <data encoding="base64" compression="zlib">
    eJzt1bENgDAQBEG7/6YdkqyQQSIxM9IV8Jv8GAAAcG9+sBPo0nRpujRdmi5Nl6ZL06Xp0nRpurz3x5t36NJ0abo0XZouF/+46dJ0abo0XQAAAACAJxbiyQE8
   </data>
  </layer>
- <layer name="LAYER_COL" width="70" height="50">
+ <layer name="LAYER_SPR" width="70" height="50">
   <data encoding="base64" compression="zlib">
    eJzt11sOhCAQRFHD/nflxoxfGtNAN76guCfxY6QhUgFGlwUAAAC79OI1Mu/zR+c7Sy69jPuV0vqP7JVrDiq55NpqfXO1Crm0tNVq1XI5r5/WPWWNO5rWXKz7pXFHE9lHnvPWM+4I7p4v1trx9u1Zbl7n35H/6hlyKdXm2hVz+au2R5G9khr6KLNygd67yVPIxcY+OkTO3ZlY8/XeU0YuNs8342rUqfPOl1zu1anwvuvPlgsAAAAAAACw2wAbOAI6
   </data>
  </layer>
- <objectgroup name="LAYER_OBJ">
-  <object id="3" gid="4" x="592" y="256" width="16" height="16"/>
- </objectgroup>
- <layer name="LAYER_OVR" width="70" height="50">
+ <layer name="LAYER_ABO" width="70" height="50">
   <data encoding="base64" compression="zlib">
    eJzt1SEOACAMA8D9APj/Z5nBoFAshLukfp1pBAAAAK9omZ4Z1YdcdNL5x78AQKV9e20xAAAAAAAAALBM9UYA8Q==
   </data>

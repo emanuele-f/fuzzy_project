@@ -45,7 +45,7 @@ FuzzyMap * map;
 
 static void _chess_move(Chess * chess, ulong nx, ulong ny)
 {
-    if (fuzzy_map_spy(map, FUZZY_LAYER_OBJ, nx, ny))
+    if (fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, nx, ny))
         // collision
         return;
 
