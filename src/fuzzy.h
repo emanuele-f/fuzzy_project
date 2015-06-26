@@ -44,6 +44,7 @@ typedef unsigned long int ulong;
 
 #define fuzzy_min(x, y) (x < y ? x : y)
 #define fuzzy_max(x, y) (x > y ? x : y)
+#define fuzzy_abs(x) ((x) >= 0 ? (x) : -(x))
 #define fuzzy_str(s) #s
 
 #define fuzzy_log(ticket, msg) fprintf(fuzzy_log_get(), "[%s] %s:%d -- %s\n", ticket, basename(__FILE__), __LINE__, msg)
