@@ -1,3 +1,4 @@
+- Implement attack area descriptor
 - Create structure animation set : separate source file
 - Switch animation set on movement
 - Check map bounds before perform chess logic

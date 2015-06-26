@@ -18,7 +18,7 @@ default: export CFLAGS += -O2
 default: main
 
 # OBJ targets
-OBJ_TARGETS_ = tiles.o fuzzy.o network.o protocol.o server.o
+OBJ_TARGETS_ = tiles.o fuzzy.o network.o protocol.o server.o area.o
 
 $(BUILD_FOLDER)/main.o: $(SRC_FOLDER)/main.c $(SRC_FOLDER)/fuzzy.h
 	$(CC) $(CFLAGS) -c -o $@ $<

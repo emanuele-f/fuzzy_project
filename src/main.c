@@ -26,6 +26,7 @@
 #include "network.h"
 #include "protocol.h"
 #include "tiles.h"
+#include "area.h"
 #include "gids.h"
 
 #define FPS 30
@@ -215,6 +216,7 @@ int main(int argc, char *argv[])
     fuzzy_map_update(map, 0);
     Chess * chess = _chess_new(34, 30);
     bool showing_area = false;
+    fuzzy_areadb_init();
 
 	al_clear_to_color(al_map_rgb(0, 0, 0));
     al_draw_bitmap(map->bitmap, -map_x, -map_y, 0);
