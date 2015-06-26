@@ -26,6 +26,7 @@
 #include "network.h"
 #include "protocol.h"
 #include "tiles.h"
+#include "gids.h"
 
 #define FPS 30
 #define LEFT_BUTTON 1
@@ -34,10 +35,6 @@
 #define WINDOW_TITLE "FUZZY Tales!"
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 480
-
-#define GID_LINK "link_1"
-#define GID_TARGET "chess_sel"
-#define GID_ATTACK_AREA "attack_area"
 
 typedef struct Chess {
     ulong x;
