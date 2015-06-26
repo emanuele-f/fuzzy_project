@@ -36,6 +36,7 @@
 
 #define TID_LINK 5
 #define TID_TARGET 6
+#define TID_ATTACK_AREA 7
 
 typedef struct Chess {
     ulong x;
@@ -47,7 +48,7 @@ FuzzyMap * map;
 
 static void _chess_move(Chess * chess, ulong nx, ulong ny)
 {
-    if (fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, nx, ny))
+    if (fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, nx, ny) != FUZZY_CELL_EMPTY)
         // collision
         return;
     
@@ -80,6 +81,55 @@ static void _chess_free(Chess * chess)
         fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x, y);
     fuzzy_sprite_destroy(map, FUZZY_LAYER_SPRITES, x, y);
     free(chess);
+}
+
+static void _chess_show_attack_area(Chess * chess)
+{
+    const ulong x = chess->x;
+    const ulong y = chess->y;
+    
+    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_ATTACK_AREA, x-1, y);
+    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_ATTACK_AREA, x+1, y);
+    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_ATTACK_AREA, x, y-1);
+    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_ATTACK_AREA, x, y+1);
+    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_ATTACK_AREA, x-1, y-1);
+    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_ATTACK_AREA, x-1, y+1);
+    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_ATTACK_AREA, x+1, y+1);
+    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_ATTACK_AREA, x+1, y-1);
+}
+
+static void _chess_hide_attack_area(Chess * chess)
+{
+    const ulong x = chess->x;
+    const ulong y = chess->y;
+    
+    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x-1, y);
+    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x+1, y);
+    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x, y-1);
+    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x, y+1);
+    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x-1, y-1);
+    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x-1, y+1);
+    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x+1, y+1);
+    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x+1, y-1);
+}
+
+static bool _chess_inside_target_area(Chess * chess, ulong tx, ulong ty)
+{
+    if (tx == chess->x && ty == chess->y)
+        return false;
+        
+    if (tx >= chess->x-1 && tx <= chess->x+1 &&
+      ty >= chess->y-1 && ty <= chess->y+1 &&
+      fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, tx, ty) == FUZZY_CELL_SPRITE
+    )   return true;
+            
+    return false;
+}
+
+/* pre: target is in attack area and there is a target */
+static void _do_attack(Chess * chess, ulong tx, ulong ty)
+{
+    fuzzy_sprite_destroy(map, FUZZY_LAYER_SPRITES, tx, ty);
 }
 
 int main(int argc, char *argv[])
@@ -123,6 +173,7 @@ int main(int argc, char *argv[])
     map = fuzzy_map_load("level000.tmx");
     fuzzy_map_update(map, 0);
     Chess * chess = _chess_new(34, 30);
+    bool showing_area = false;
 
 	al_clear_to_color(al_map_rgb(0, 0, 0));
     al_draw_bitmap(map->bitmap, -map_x, -map_y, 0);
@@ -181,21 +232,41 @@ int main(int argc, char *argv[])
                 map_y += 5;
                 if (map_y > (map->tot_height - screen_height))
                     map_y = map->tot_height - screen_height;
-            } else if (al_key_down(&keyboard_state, ALLEGRO_KEY_W))
-                _chess_move(chess, chess->x, chess->y-1);
-            else if (al_key_down(&keyboard_state, ALLEGRO_KEY_S))
-                _chess_move(chess, chess->x, chess->y+1);
-            else if (al_key_down(&keyboard_state, ALLEGRO_KEY_A))
-                _chess_move(chess, chess->x-1, chess->y);
-            else if (al_key_down(&keyboard_state, ALLEGRO_KEY_D))
-                _chess_move(chess, chess->x+1, chess->y);
+            }
 
             redraw = true;
             break;
+        case ALLEGRO_EVENT_KEY_DOWN:
+            /* abort attack */
+            if (showing_area) {
+                _chess_hide_attack_area(chess);
+                showing_area = false;
+            }
+            
+            switch(event.keyboard.keycode) {
+                case ALLEGRO_KEY_W:
+                    _chess_move(chess, chess->x, chess->y-1);
+                    break;
+                case ALLEGRO_KEY_A:
+                    _chess_move(chess, chess->x-1, chess->y);
+                    break;
+                case ALLEGRO_KEY_S:
+                    _chess_move(chess, chess->x, chess->y+1);
+                    break;
+                case ALLEGRO_KEY_D:
+                    _chess_move(chess, chess->x+1, chess->y);
+                    break;
+                    
+                case ALLEGRO_KEY_K:
+                    if(chess->target) {
+                        _chess_show_attack_area(chess);
+                        showing_area = true;
+                    }
+                    break;
+            }
+            break;
         case ALLEGRO_EVENT_DISPLAY_CLOSE:
             running = false;
-            break;
-        case ALLEGRO_EVENT_KEY_DOWN:
             break;
         case ALLEGRO_EVENT_KEY_UP:
             break;
@@ -209,12 +280,20 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
                 printf("SELECT %d %d\n", tx, ty);
 #endif
-                if (chess->x == tx && chess->y == ty) {
-                    fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_TARGET, tx, ty);
-                    chess->target = true;
-                } else if (chess->target) {
-                    fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, chess->x, chess->y);
-                    chess->target = false;
+                if(showing_area && _chess_inside_target_area(chess, tx, ty)) {
+                    /* select attack target */
+                    _do_attack(chess, tx, ty);
+                    _chess_hide_attack_area(chess);
+                    showing_area = false;
+                } else {
+                    /* select chess */
+                    if (chess->x == tx && chess->y == ty) {
+                        fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, TID_TARGET, tx, ty);
+                        chess->target = true;
+                    } else if (chess->target) {
+                        fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, chess->x, chess->y);
+                        chess->target = false;
+                    }
                 }
             }
             break;
@@ -271,6 +350,7 @@ int main(int argc, char *argv[])
     fuzzy_server_destroy();
     fuzzy_message_del(sendmsg);
 
+    _chess_free(chess);
 	fuzzy_map_unload(map);
     al_destroy_event_queue(evqueue);
 	al_destroy_display(display);

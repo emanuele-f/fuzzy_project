@@ -64,6 +64,20 @@
     <property name="t" value="200"/>
    </properties>
   </tile>
+  <tile id="54">
+   <properties>
+    <property name="f" value="0"/>
+    <property name="g" value="7"/>
+    <property name="t" value="300"/>
+   </properties>
+  </tile>
+  <tile id="55">
+   <properties>
+    <property name="f" value="1"/>
+    <property name="g" value="7"/>
+    <property name="t" value="300"/>
+   </properties>
+  </tile>
   <tile id="67">
    <properties>
     <property name="f" value="0"/>
