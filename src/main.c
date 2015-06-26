@@ -49,7 +49,7 @@ static void _chess_move(Chess * chess, ulong nx, ulong ny)
         // collision
         return;
 
-    fuzzy_sprite_move(map, chess->x, chess->y, nx, ny);
+    fuzzy_sprite_move(map, FUZZY_LAYER_SPRITES, chess->x, chess->y, nx, ny);
     chess->x = nx;
     chess->y = ny;
 }
@@ -61,7 +61,7 @@ static Chess * _chess_new(ulong x, ulong y)
     chess->x = x;
     chess->y = y;
 
-    fuzzy_sprite_create(map, grp, x, y);
+    fuzzy_sprite_create(map, FUZZY_LAYER_SPRITES, grp, x, y);
 
     return chess;
 }

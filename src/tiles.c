@@ -829,7 +829,7 @@ void fuzzy_map_unload(FuzzyMap * fmap)
     free(fmap);
 }
 
-void fuzzy_sprite_create(FuzzyMap * map, ulong grp, ulong x, ulong y)
+void fuzzy_sprite_create(FuzzyMap * map, uint lid, ulong grp, ulong x, ulong y)
 {
     struct _AnimatedSprite * sprite;
     tmx_tileset * ts;
@@ -843,13 +843,13 @@ void fuzzy_sprite_create(FuzzyMap * map, ulong grp, ulong x, ulong y)
     _load_animation_group(map, grp, ts);
 
     /* register sprite descriptor */
-    _layer_sprite_append(map->elayers[FUZZY_LAYER_SPRITES], sprite);
+    _layer_sprite_append(map->elayers[lid], sprite);
 }
 
-void fuzzy_sprite_move(FuzzyMap * map, ulong ox, ulong oy, ulong nx, ulong ny)
+void fuzzy_sprite_move(FuzzyMap * map, uint lid, ulong ox, ulong oy, ulong nx, ulong ny)
 {
     struct _AnimatedSprite * sprite;
-    struct _AnimatedLayer * elayer = map->elayers[FUZZY_LAYER_SPRITES];
+    struct _AnimatedLayer * elayer = map->elayers[lid];
 
     sprite = _get_sprite_at(elayer, nx, ny);
     if (sprite != NULL)

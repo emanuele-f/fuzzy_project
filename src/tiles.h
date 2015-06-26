@@ -103,17 +103,19 @@ bool fuzzy_map_spy(FuzzyMap * fmap, uint lid, ulong x, ulong y);
 /** Create a new sprite at (x, y)
 
     \param map object
+    \param lid layer id, where to create the sprite
     \param grp the animation group the sprite belongs to
     \param x where to create
     \param y where to create
 
     \note an error is raised if given position is not empty
  */
-void fuzzy_sprite_create(FuzzyMap * map, ulong grp, ulong x, ulong y);
+void fuzzy_sprite_create(FuzzyMap * map, uint lid, ulong grp, ulong x, ulong y);
 
 /** Moves a sprite to (ox, oy) to (nx, ny)
 
     \param map object
+    \param lid layer id, where the sprite is
     \param ox old x
     \param oy old y
     \param nx new x
@@ -121,6 +123,6 @@ void fuzzy_sprite_create(FuzzyMap * map, ulong grp, ulong x, ulong y);
 
     \note an error is raised if sprite does exist at coords (ox, oy)
  */
-void fuzzy_sprite_move(FuzzyMap * map, ulong ox, ulong oy, ulong nx, ulong ny);
+void fuzzy_sprite_move(FuzzyMap * map, uint lid, ulong ox, ulong oy, ulong nx, ulong ny);
 
 #endif
