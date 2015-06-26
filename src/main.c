@@ -253,7 +253,7 @@ int main(int argc, char *argv[])
         case ALLEGRO_EVENT_TIMER:
             /* check soul ticks */
             while (al_get_time() - soul_time >= SOUL_TIME_INTERVAL) {
-                fuzzy_debug("Soul tick!");
+                //~ fuzzy_debug("Soul tick!");
                 soul_time += SOUL_TIME_INTERVAL;
                 player_sp += SOUL_POINTS_BOOST;
             }

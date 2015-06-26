@@ -897,70 +897,23 @@ void fuzzy_sprite_create(FuzzyMap * map, uint lid, char * grp, ulong x, ulong y)
     _layer_sprite_append(map->elayers[lid], sprite);
 }
 
-/* from tmx.c */
-static void free_props(tmx_property *p) {
-	if (p) {
-		free_props(p->next);
-		free(p->name);
-		free(p->value);
-		free(p);
-    }
-}
-static void free_image(tmx_image *i) {
-	if (i) {
-		free(i->source);
-		if (tmx_img_free_func)
-			tmx_img_free_func(i->resource_image);
-		free(i);
-	}
-}
-static void free_tile(tmx_tile *t) {
-    free_props(t->properties);
-    free_image(t->image);
-    free(t);
-}
-
-/* Remove a tile from tmx data structures
- * 
- * pre: tile is present
- * post: tinfo->tile is NULL
+/* Remove a tile from a tmx layer
+ 
+   Note that the tileset still holds a reference to this tile (identified by
+   its gid)
  */
-static void _remove_tile_at(tmx_map * map, uint lid, ulong x, ulong y, struct _TileInfo * tinfo)
+static void _remove_tile_at(tmx_map * map, uint lid, ulong x, ulong y)
 {
     tmx_layer * layer;
-    tmx_tile * tile;
-    uint id;
     
     layer = _get_tmx_layer(map, lid);
-    
-    /* clear the tile gid */
     layer->content.gids[(y*map->width)+x] = 0;
-        
-    if (tinfo->tile != NULL) {
-        /* also remove special tile information */
-        id = (tinfo->gid & TMX_FLIP_BITS_REMOVAL) - tinfo->ts->firstgid;
-            
-        tile = tinfo->ts->tiles;
-        while(tile->next) {             // pre: tileset is not empty
-            if (tile->next->id == id) {
-                tile->next = tinfo->tile->next;
-                free_tile(tinfo->tile);
-                tinfo->tile = NULL;
-                break;
-            }
-            tile = tile->next;
-        }
-        
-        if(tinfo->tile != NULL)
-            fuzzy_critical(fuzzy_sformat("Cannot find tile '%d' in tileset!", id));
-    }
 }
 
 void fuzzy_sprite_destroy(FuzzyMap * fmap, uint lid, ulong x, ulong y)
 {
     struct _AnimatedSprite * sprite, * prec;
     struct _AnimatedLayer * elayer = fmap->elayers[lid];
-    struct _TileInfo tinfo;
     tmx_map * map = fmap->map;
     
     sprite = _get_sprite_at(elayer, x, y, &prec);
@@ -974,8 +927,8 @@ void fuzzy_sprite_destroy(FuzzyMap * fmap, uint lid, ulong x, ulong y)
         prec->next = sprite->next;
         
     /* check if it's also loaded into layer list */
-    if (_get_tile_at(map, lid, x, y, &tinfo))
-        _remove_tile_at(map, lid, x, y, &tinfo);
+    if (_get_tile_at(map, lid, x, y, NULL))
+        _remove_tile_at(map, lid, x, y);
         
     free(sprite);
 }
