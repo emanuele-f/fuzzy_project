@@ -35,6 +35,10 @@ typedef enum FUZZY_LAYERS {
 } FUZZY_LAYERS;
 #define FUZZY_LAYERS_N 5
 
+typedef enum FUZZY_CELL_TYPE {
+    FUZZY_CELL_EMPTY, FUZZY_CELL_TILE, FUZZY_CELL_SPRITE
+} FUZZY_CELL_TYPE;
+
 /** Holds map status and data. */
 typedef struct FuzzyMap {
     tmx_map * map;                          /* the map data */
@@ -88,17 +92,18 @@ void fuzzy_map_render(FuzzyMap * map, ALLEGRO_BITMAP * target);
  */
 void fuzzy_map_update(FuzzyMap * map, double time);
 
-/** Check if position is empty or not.
+/** Check if position contains a tile.
 
     \param fmap
     \param lid layer id
     \param x coord
     \param y coord
 
-    \retval false if cell is empty
-    \retval true if not
+    \retval FUZZY_CELL_EMPTY if cell is empty
+    \retval FUZZY_CELL_TILE is cell is a tile
+    \retval FUZZY_CELL_SPRITE is cell is a sprite
  */
-bool fuzzy_map_spy(FuzzyMap * fmap, uint lid, ulong x, ulong y);
+FUZZY_CELL_TYPE fuzzy_map_spy(FuzzyMap * fmap, uint lid, ulong x, ulong y);
 
 /** Create a new sprite at (x, y)
 

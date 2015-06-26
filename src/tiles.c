@@ -307,7 +307,7 @@ static struct _AnimatedSprite * _get_sprite_at(struct _AnimatedLayer * elayer, u
     return NULL;
 }
 
-bool fuzzy_map_spy(FuzzyMap * fmap, uint lid, ulong x, ulong y)
+FUZZY_CELL_TYPE fuzzy_map_spy(FuzzyMap * fmap, uint lid, ulong x, ulong y)
 {
     uint gid;
     tmx_layer * layer;
@@ -318,9 +318,12 @@ bool fuzzy_map_spy(FuzzyMap * fmap, uint lid, ulong x, ulong y)
     layer = _get_tmx_layer(map, lid);
     gid = _get_gid_in_layer(map, layer, x, y);
     ts = tmx_get_tileset(map, gid, &tx, &ty);
-    if (ts)
-        return true;
-    return false;
+    if (ts) {
+        if (_get_sprite_at(_get_animation_layer(fmap, lid), x, y, NULL) != NULL)
+            return FUZZY_CELL_SPRITE;
+        return FUZZY_CELL_TILE;
+    }
+    return FUZZY_CELL_EMPTY;
 }
 
 /*---------------------------- DRAW METHODS ------------------------------*/
