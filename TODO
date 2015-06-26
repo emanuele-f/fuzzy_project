@@ -1,7 +1,6 @@
 - Create structure animation set : separate source file
 - Switch animation set on movement
 - Check map bounds before perform chess logic
-- Add frame counter / sprite
 - Game engine: hold active sprites
 - Add soul clock
 - Implement path hot points

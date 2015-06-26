@@ -59,6 +59,7 @@ struct _AnimationFrame {
 /** Holds a group of related animation frames */
 struct _AnimationGroup {
     char id[MAX_GROUP_CHARS];               /* id of the animation group */
+    double totime;                          /* total animation time, in seconds */
     struct _AnimationFrame * frames;        /* list of animation frames */
     struct _AnimationGroup * next;
 };
@@ -582,9 +583,12 @@ static void _load_group_frames(struct _AnimationGroup * group, tmx_tileset * ts)
     struct _AnimationFrame *frame, *cur;
     tmx_tile * tile;
     char * grp_s;
-    ulong fid, msec;
+    ulong fid, msec, fcount;
+    double totime;
 
     fuzzy_debug(fuzzy_sformat("Loading animation group '%s'", group->id));
+    totime = 0;
+    fcount = 0;
 
     tile = ts->tiles;
     while(tile) {
@@ -607,6 +611,8 @@ static void _load_group_frames(struct _AnimationGroup * group, tmx_tileset * ts)
             frame->ty = ts->margin + (ty * ts->tile_height) + (ty * ts->spacing);
             frame->transtime = (msec * 1.) / 1000;
             frame->next = NULL;
+            totime += frame->transtime;
+            fcount++;
 
             /* add to frame list */
             if (group->frames == NULL)
@@ -627,6 +633,9 @@ static void _load_group_frames(struct _AnimationGroup * group, tmx_tileset * ts)
         }
         tile = tile->next;
     }
+    
+    group->totime = totime;
+    fuzzy_debug(fuzzy_sformat("\t%d frames, %.1f seconds", fcount, totime));
 }
 
 /** Ensures the animation loop for [grp] id is loaded into FuzzyMap groups.
@@ -651,6 +660,7 @@ static struct _AnimationGroup * _load_animation_group(FuzzyMap * fmap, char * gr
         strcpy(group->id, grp);
         group->frames = NULL;
         group->next = NULL;
+        group->totime = 0;
         _load_group_frames(group, ts);
 
         /* add to list */
