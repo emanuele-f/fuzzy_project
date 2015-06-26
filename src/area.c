@@ -23,6 +23,12 @@
 
 //~ #define DUMP_DEBUG
 
+FuzzyArea FuzzyMeleeMan = {
+    {1, 1, 1},
+    {1, 0, 1},
+    {1, 1, 1}
+};
+
 FuzzyArea FuzzyRangedMan = {
     {0, 0, 1, 1, 1, 0, 0},
     {0, 1, 1, 1, 1, 1, 0},
@@ -157,6 +163,7 @@ void fuzzy_areadb_init()
 {
     fuzzy_debug("Generating area sets...");
     
+    fuzzy_area_prototype(FuzzyMeleeMan, 3, 3);
     fuzzy_area_prototype(FuzzyRangedMan, 7, 7);
     
     fuzzy_debug("Generation done");

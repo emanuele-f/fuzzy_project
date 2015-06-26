@@ -40,6 +40,7 @@
 /* Seconds before soul points boost */
 #define SOUL_TIME_INTERVAL 3.0
 #define SOUL_POINTS_BOOST 8
+#define SOUL_POINTS_INITIAL 20
 
 /* Action requirements */
 #define SP_MOVE 1
@@ -53,7 +54,7 @@ typedef struct Chess {
 }Chess;
 
 FuzzyMap * map;
-uint player_sp = 5;
+uint player_sp = SOUL_POINTS_INITIAL;
 
 static bool _pay_sp_requirement(uint sp_req)
 {
@@ -226,7 +227,7 @@ int main(int argc, char *argv[])
     fuzzy_map_setup();
     map = fuzzy_map_load("level000.tmx");
     fuzzy_map_update(map, 0);
-    Chess * chess = _chess_new(34, 30, &FuzzyRangedMan);
+    Chess * chess = _chess_new(34, 30, &FuzzyMeleeMan);
     bool showing_area = false;
 
 	al_clear_to_color(al_map_rgb(0, 0, 0));
@@ -319,6 +320,14 @@ int main(int argc, char *argv[])
                     
                 case ALLEGRO_KEY_K:
                     _attack_area_on();
+                    break;
+                    
+                case ALLEGRO_KEY_SPACE:
+                    /* switch attack type */
+                    if (chess->atkarea == &FuzzyMeleeMan)
+                        chess->atkarea = &FuzzyRangedMan;
+                    else
+                        chess->atkarea = &FuzzyMeleeMan;
                     break;
             }
             break;

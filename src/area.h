@@ -78,6 +78,7 @@ FuzzyAreaIterator * fuzzy_area_iter(const FuzzyArea * area, FuzzyAreaIterator * 
 void fuzzy_areadb_init();
 
 /* Database definitions */
+extern FuzzyArea FuzzyMeleeMan;
 extern FuzzyArea FuzzyRangedMan;
 
 #endif
