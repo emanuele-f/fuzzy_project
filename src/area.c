@@ -21,6 +21,8 @@
 #define _central_x (FUZZY_AREA_NCOLS / 2 + 1)
 #define _central_y (FUZZY_AREA_NROWS / 2 + 1)
 
+//~ #define DUMP_DEBUG
+
 FuzzyArea FuzzyRangedMan = {
     {0, 0, 1, 1, 1, 0, 0},
     {0, 1, 1, 1, 1, 1, 0},
@@ -31,6 +33,7 @@ FuzzyArea FuzzyRangedMan = {
     {0, 0, 1, 1, 1, 0, 0},
 };
 
+#ifdef DUMP_DEBUG
 static void _dump_area(FuzzyArea area)
 {
     uint i, j;
@@ -41,13 +44,16 @@ static void _dump_area(FuzzyArea area)
         puts("");
     }
 }
+#endif
 
 void fuzzy_area_prototype(FuzzyArea area, uint width, uint height)
 {
     FuzzyArea support;
     uint i, j, xoff, yoff;
-    
+
+#ifdef DUMP_DEBUG
     _dump_area(area);
+#endif
     
     if (width % 2 == 0)
         fuzzy_critical(fuzzy_sformat("Prototype width is not odd: %d", width));
@@ -76,8 +82,10 @@ void fuzzy_area_prototype(FuzzyArea area, uint width, uint height)
         for(j=0; j<FUZZY_AREA_NCOLS; j++)
             area[i][j] = support[i][j];
     
+#ifdef DUMP_DEBUG
     puts("");
     _dump_area(area);
+#endif
 }
 
 void fuzzy_areadb_init()
