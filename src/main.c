@@ -51,8 +51,6 @@
     }\
 }while(0)
 
-FuzzyMap * map;
-
 int main(int argc, char *argv[])
 {
 	ALLEGRO_DISPLAY *display = NULL;
@@ -66,6 +64,8 @@ int main(int argc, char *argv[])
     int clock_ray_alpha;
     float soul_interval = SOUL_TIME_INTERVAL;
     LocalPlayer * player;
+    LocalPlayer *lplist = NULL;
+    Player *eplist = NULL;
 
 	bool running = true;
 	bool redraw = true;
@@ -105,18 +105,16 @@ int main(int argc, char *argv[])
     al_register_event_source(evqueue, al_get_mouse_event_source());
 
     /* Game setup */
-    player = fuzzy_localplayer_new("Dolly");
-    Chess * chess = fuzzy_chess_add(player->player, 34, 30, &FuzzyMeleeMan);
-
-    /* Map load */
+    player = fuzzy_localplayer_new(&lplist, &eplist, "Dolly");
     fuzzy_areadb_init();
     fuzzy_map_setup();
-    map = fuzzy_map_load("level000.tmx");
-    fuzzy_map_update(map, 0);
+    player->player->map = fuzzy_map_load("level000.tmx");
+    fuzzy_map_update(player->player->map, 0);
     bool showing_area = false;
+    Chess * chess = fuzzy_chess_add(player->player, 34, 30, &FuzzyMeleeMan);
 
 	al_clear_to_color(al_map_rgb(0, 0, 0));
-    al_draw_bitmap(map->bitmap, -map_x, -map_y, 0);
+    al_draw_bitmap(player->player->map->bitmap, -map_x, -map_y, 0);
 	al_flip_display();
 
 #if DEBUG
@@ -170,8 +168,8 @@ int main(int argc, char *argv[])
             al_get_keyboard_state(&keyboard_state);
             if (al_key_down(&keyboard_state, ALLEGRO_KEY_RIGHT)) {
                 map_x += 5;
-                if (map_x > (map->tot_width - screen_width))
-                    map_x = map->tot_width - screen_width;
+                if (map_x > (player->player->map->tot_width - screen_width))
+                    map_x = player->player->map->tot_width - screen_width;
             }
             else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LEFT)) {
                 map_x -= 5;
@@ -185,8 +183,8 @@ int main(int argc, char *argv[])
             }
             else if (al_key_down(&keyboard_state, ALLEGRO_KEY_DOWN)) {
                 map_y += 5;
-                if (map_y > (map->tot_height - screen_height))
-                    map_y = map->tot_height - screen_height;
+                if (map_y > (player->player->map->tot_height - screen_height))
+                    map_y = player->player->map->tot_height - screen_height;
             } else if (al_key_down(&keyboard_state, ALLEGRO_KEY_O)) {
                 soul_interval = fuzzy_max(0.1, soul_interval - 0.05);
             } else if (al_key_down(&keyboard_state, ALLEGRO_KEY_P)) {
@@ -204,16 +202,16 @@ int main(int argc, char *argv[])
 
             switch(event.keyboard.keycode) {
                 case ALLEGRO_KEY_W:
-                    fuzzy_chess_move(chess, chess->x, chess->y-1);
+                    fuzzy_chess_local_move(player, chess, chess->x, chess->y-1);
                     break;
                 case ALLEGRO_KEY_A:
-                    fuzzy_chess_move(chess, chess->x-1, chess->y);
+                    fuzzy_chess_local_move(player, chess, chess->x-1, chess->y);
                     break;
                 case ALLEGRO_KEY_S:
-                    fuzzy_chess_move(chess, chess->x, chess->y+1);
+                    fuzzy_chess_local_move(player, chess, chess->x, chess->y+1);
                     break;
                 case ALLEGRO_KEY_D:
-                    fuzzy_chess_move(chess, chess->x+1, chess->y);
+                    fuzzy_chess_local_move(player, chess, chess->x+1, chess->y);
                     break;
 
                 case ALLEGRO_KEY_K:
@@ -240,22 +238,22 @@ int main(int argc, char *argv[])
                 _attack_area_on();
             } else if(event.mouse.button == LEFT_BUTTON) {
                 /* world to tile coords */
-                int tx = (event.mouse.x+map_x) / map->tile_width;
-                int ty = (event.mouse.y+map_y) / map->tile_height;
+                int tx = (event.mouse.x+map_x) / player->player->map->tile_width;
+                int ty = (event.mouse.y+map_y) / player->player->map->tile_height;
 #ifdef DEBUG
                 printf("SELECT %d %d\n", tx, ty);
 #endif
                 if(showing_area && fuzzy_chess_inside_target_area(chess, tx, ty)) {
                     /* select attack target */
-                    if (fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, tx, ty) == FUZZY_CELL_SPRITE) {
-                        if (fuzzy_chess_attack(chess, tx, ty))
+                    if (fuzzy_map_spy(player->player->map, FUZZY_LAYER_SPRITES, tx, ty) == FUZZY_CELL_SPRITE) {
+                        if (fuzzy_chess_local_attack(player, chess, tx, ty))
                             _attack_area_off();
                     }
                 } else {
                     /* select chess */
                     if (chess->x == tx && chess->y == ty) {
                         if (! chess->target) {
-                            fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_TARGET, tx, ty);
+                            fuzzy_sprite_create(player->player->map, FUZZY_LAYER_BELOW, GID_TARGET, tx, ty);
                             chess->target = true;
                         }
                     } else if (chess->target) {
@@ -264,7 +262,7 @@ int main(int argc, char *argv[])
                             _attack_area_off();
                         } else {
                             /* remove target */
-                            fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, chess->x, chess->y);
+                            fuzzy_sprite_destroy(player->player->map, FUZZY_LAYER_BELOW, chess->x, chess->y);
                             chess->target = false;
                         }
                     }
@@ -280,16 +278,16 @@ int main(int argc, char *argv[])
 
         if (redraw && al_is_event_queue_empty(evqueue)) {
             curtime = al_get_time();
-            fuzzy_map_update(map, curtime);
+            fuzzy_map_update(player->player->map, curtime);
 
             // Clear the screen
             al_clear_to_color(al_map_rgb(0, 0, 0));
-            al_draw_bitmap(map->bitmap, -map_x, -map_y, 0);
+            al_draw_bitmap(player->player->map->bitmap, -map_x, -map_y, 0);
 
 #ifdef GRID_ON
             /* Draw the grid */
-            int tw = map->tile_width;
-            int ty = map->tile_height;
+            int tw = player->player->map->tile_width;
+            int ty = player->player->map->tile_height;
             int x, y;
             for (x=(tw-map_x)%tw; x<screen_width; x+=tw)
                 al_draw_line(x, 0, x, screen_height, al_map_rgba(7,7,7,100), 1);
@@ -341,8 +339,7 @@ int main(int argc, char *argv[])
     fuzzy_server_destroy();
     fuzzy_message_del(sendmsg);
 
-    fuzzy_chess_free(chess);
-	fuzzy_map_unload(map);
+	fuzzy_map_unload(player->player->map);
     al_destroy_event_queue(evqueue);
 	al_destroy_display(display);
     al_destroy_timer(timer);

@@ -53,9 +53,9 @@ typedef struct LocalPlayer {
 }LocalPlayer;
 
 /* player related */
-Player * fuzzy_player_new(char * name);
+Player * fuzzy_player_new(Player ** plist, char * name);
 void fuzzy_player_free();
-LocalPlayer * fuzzy_localplayer_new(char * name);
+LocalPlayer * fuzzy_localplayer_new(LocalPlayer ** lplist, Player ** plist, char * name);
 void fuzzy_localplayer_free();
 
 /* chess related */
