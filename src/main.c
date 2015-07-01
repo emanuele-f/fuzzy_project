@@ -26,8 +26,8 @@
 #include "network.h"
 #include "protocol.h"
 #include "tiles.h"
-#include "area.h"
 #include "gids.h"
+#include "game.h"
 
 #define FPS 30
 #define LEFT_BUTTON 1
@@ -37,152 +37,21 @@
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 480
 
-/* Seconds before soul points boost */
-#define SOUL_TIME_INTERVAL 3.0
-#define SOUL_POINTS_BOOST 8
-#define SOUL_POINTS_INITIAL 20
-#define RAY_TIME_INTERVAL 1.0
-
-/* Action requirements */
-#define SP_MOVE 1
-#define SP_ATTACK 5
-
-typedef struct Chess {
-    ulong x;
-    ulong y;
-    bool target;
-    FuzzyArea * atkarea;
-}Chess;
-
-FuzzyMap * map;
-uint player_sp = SOUL_POINTS_INITIAL;
-
-static bool _pay_sp_requirement(uint sp_req)
-{
-    if (player_sp < sp_req) {
-        fuzzy_debug("Not enough SP!");
-        return false;
-    }
-
-    player_sp -= sp_req;
-    return true;
-}
-
-static bool _chess_move(Chess * chess, ulong nx, ulong ny)
-{
-    if (! _pay_sp_requirement(SP_MOVE))
-        // not enough APs
-        return false;
-
-    if (fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, nx, ny) != FUZZY_CELL_EMPTY)
-        // collision
-        return false;
-
-    if (chess->target)
-        fuzzy_sprite_move(map, FUZZY_LAYER_BELOW, chess->x, chess->y, nx, ny);
-    fuzzy_sprite_move(map, FUZZY_LAYER_SPRITES, chess->x, chess->y, nx, ny);
-    chess->x = nx;
-    chess->y = ny;
-    return true;
-}
-
-static Chess * _chess_new(ulong x, ulong y, FuzzyArea * atkarea)
-{
-    char * grp = GID_LINK;
-    Chess * chess = fuzzy_new(Chess);
-    chess->x = x;
-    chess->y = y;
-    chess->target = false;
-    chess->atkarea = atkarea;
-
-    fuzzy_sprite_create(map, FUZZY_LAYER_SPRITES, grp, x, y);
-
-    return chess;
-}
-
-static void _chess_free(Chess * chess)
-{
-    const ulong x = chess->x;
-    const ulong y = chess->y;
-
-    if (chess->target)
-        fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, x, y);
-    fuzzy_sprite_destroy(map, FUZZY_LAYER_SPRITES, x, y);
-    free(chess);
-}
-
-static void _chess_show_attack_area(Chess * chess)
-{
-    FuzzyAreaIterator iterator;
-    FuzzyPoint limit, pt;
-    bool val;
-
-    limit.x = map->width;
-    limit.y = map->height;
-    pt.x = chess->x;
-    pt.y = chess->y;
-
-    fuzzy_area_iter_begin(chess->atkarea, &iterator, &pt, &limit);
-    while(fuzzy_area_iter(chess->atkarea, &iterator))
-        if (iterator.value)
-            fuzzy_sprite_create(map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, iterator.pos.x, iterator.pos.y);
-}
-
-static void _chess_hide_attack_area(Chess * chess)
-{
-    FuzzyAreaIterator iterator;
-    FuzzyPoint limit, pt;
-
-    limit.x = map->width;
-    limit.y = map->height;
-    pt.x = chess->x;
-    pt.y = chess->y;
-
-    fuzzy_area_iter_begin(chess->atkarea, &iterator, &pt, &limit);
-    while(fuzzy_area_iter(chess->atkarea, &iterator))
-        if (iterator.value)
-            fuzzy_sprite_destroy(map, FUZZY_LAYER_BELOW, iterator.pos.x, iterator.pos.y);
-}
-
-static bool _is_inside_target_area(Chess * chess, ulong tx, ulong ty)
-{
-    FuzzyPoint pivot, pt;
-
-    if (tx == chess->x && ty == chess->y)
-        return false;
-
-    pivot.x = chess->x;
-    pivot.y = chess->y;
-    pt.x = tx;
-    pt.y = ty;
-
-    if (fuzzy_area_inside(chess->atkarea, &pivot, &pt))
-        return true;
-    return false;
-}
-
-/* pre: target is in attack area and there is a target */
-static bool _do_attack(Chess * chess, ulong tx, ulong ty)
-{
-    if (! _pay_sp_requirement(SP_ATTACK))
-        return false;
-    fuzzy_sprite_destroy(map, FUZZY_LAYER_SPRITES, tx, ty);
-    return true;
-}
-
 #define _attack_area_on() do {\
     if (!showing_area && chess->target) {\
-        _chess_show_attack_area(chess);\
+        fuzzy_chess_show_attack_area(chess);\
         showing_area = true;\
     }\
 }while(0)
 
 #define _attack_area_off() do{\
     if(showing_area) {\
-        _chess_hide_attack_area(chess);\
+        fuzzy_chess_hide_attack_area(chess);\
         showing_area = false;\
     }\
 }while(0)
+
+FuzzyMap * map;
 
 int main(int argc, char *argv[])
 {
@@ -196,6 +65,7 @@ int main(int argc, char *argv[])
     float clock_ray = 0, clock_angle = 0;
     int clock_ray_alpha;
     float soul_interval = SOUL_TIME_INTERVAL;
+    LocalPlayer * player;
 
 	bool running = true;
 	bool redraw = true;
@@ -203,7 +73,7 @@ int main(int argc, char *argv[])
 	int map_x = 13*16, map_y = 5*16;
 	int screen_width = WINDOW_WIDTH;
 	int screen_height = WINDOW_HEIGHT;
-    double curtime, soul_time;
+    double curtime;
 
 	/* Initialization */
     fuzzy_iz_error(al_init(), "Failed to initialize allegro");
@@ -234,12 +104,15 @@ int main(int argc, char *argv[])
 	al_register_event_source(evqueue, al_get_keyboard_event_source());
     al_register_event_source(evqueue, al_get_mouse_event_source());
 
+    /* Game setup */
+    player = fuzzy_localplayer_new("Dolly");
+    Chess * chess = fuzzy_chess_add(player->player, 34, 30, &FuzzyMeleeMan);
+
     /* Map load */
     fuzzy_areadb_init();
     fuzzy_map_setup();
     map = fuzzy_map_load("level000.tmx");
     fuzzy_map_update(map, 0);
-    Chess * chess = _chess_new(34, 30, &FuzzyMeleeMan);
     bool showing_area = false;
 
 	al_clear_to_color(al_map_rgb(0, 0, 0));
@@ -269,7 +142,7 @@ int main(int argc, char *argv[])
     svsock = fuzzy_server_connect(FUZZY_DEFAULT_SERVER_ADDRESS, FUZZY_DEFAULT_SERVER_PORT);
 
 	/* MAIN loop */
-    soul_time = al_get_time();
+    player->soul_time = al_get_time();
     al_start_timer(timer);
 	while (running) {
         /* wait until an event happens */
@@ -279,17 +152,17 @@ int main(int argc, char *argv[])
         case ALLEGRO_EVENT_TIMER:
             /* check soul ticks */
             curtime = al_get_time();
-            while (curtime - soul_time >= soul_interval) {
+            while (curtime - player->soul_time >= soul_interval) {
                 //~ fuzzy_debug("Soul tick!");
-                soul_time += soul_interval;
-                player_sp += SOUL_POINTS_BOOST;
+                player->soul_time += soul_interval;
+                player->soul_points += SOUL_POINTS_BOOST;
 
                 clock_ray = 1;
             }
-            clock_angle = (curtime - soul_time)/soul_interval * FUZZY_2PI;
+            clock_angle = (curtime - player->soul_time)/soul_interval * FUZZY_2PI;
             if (clock_ray) {
-                clock_ray = (curtime - soul_time)/RAY_TIME_INTERVAL * 50 + 40;
-                clock_ray_alpha = (curtime - soul_time)/RAY_TIME_INTERVAL*(55) + 200;
+                clock_ray = (curtime - player->soul_time)/RAY_TIME_INTERVAL * 50 + 40;
+                clock_ray_alpha = (curtime - player->soul_time)/RAY_TIME_INTERVAL*(55) + 200;
                 if (clock_ray >= 90)
                     clock_ray = 0;
             }
@@ -331,16 +204,16 @@ int main(int argc, char *argv[])
 
             switch(event.keyboard.keycode) {
                 case ALLEGRO_KEY_W:
-                    _chess_move(chess, chess->x, chess->y-1);
+                    fuzzy_chess_move(chess, chess->x, chess->y-1);
                     break;
                 case ALLEGRO_KEY_A:
-                    _chess_move(chess, chess->x-1, chess->y);
+                    fuzzy_chess_move(chess, chess->x-1, chess->y);
                     break;
                 case ALLEGRO_KEY_S:
-                    _chess_move(chess, chess->x, chess->y+1);
+                    fuzzy_chess_move(chess, chess->x, chess->y+1);
                     break;
                 case ALLEGRO_KEY_D:
-                    _chess_move(chess, chess->x+1, chess->y);
+                    fuzzy_chess_move(chess, chess->x+1, chess->y);
                     break;
 
                 case ALLEGRO_KEY_K:
@@ -372,10 +245,10 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
                 printf("SELECT %d %d\n", tx, ty);
 #endif
-                if(showing_area && _is_inside_target_area(chess, tx, ty)) {
+                if(showing_area && fuzzy_chess_inside_target_area(chess, tx, ty)) {
                     /* select attack target */
                     if (fuzzy_map_spy(map, FUZZY_LAYER_SPRITES, tx, ty) == FUZZY_CELL_SPRITE) {
-                        if (_do_attack(chess, tx, ty))
+                        if (fuzzy_chess_attack(chess, tx, ty))
                             _attack_area_off();
                     }
                 } else {
@@ -433,7 +306,7 @@ int main(int argc, char *argv[])
             al_draw_filled_rounded_rectangle(4, screen_height-170, 175, screen_height-4,
                 8, 8, al_map_rgba(0, 0, 0, 200));
             al_draw_textf(font, al_map_rgb(255, 255, 255),
-                15, screen_height-163, ALLEGRO_ALIGN_LEFT, "SP: %d", player_sp);
+                15, screen_height-163, ALLEGRO_ALIGN_LEFT, "SP: %d", player->soul_points);
 
             /* draw Soul Clock */
             al_draw_scaled_bitmap(clock_quadrant, 0, 0, 301, 301, 20, screen_height-80-139/2, 139, 139, 0);
@@ -468,7 +341,7 @@ int main(int argc, char *argv[])
     fuzzy_server_destroy();
     fuzzy_message_del(sendmsg);
 
-    _chess_free(chess);
+    fuzzy_chess_free(chess);
 	fuzzy_map_unload(map);
     al_destroy_event_queue(evqueue);
 	al_destroy_display(display);

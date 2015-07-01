@@ -1,3 +1,5 @@
+- Implement player related function
+- Migrate code to use a linked list library
 - Add test module for area.c
 - Animation module to interact either with map tiles or with primitives
 - Check map bounds before perform chess logic
