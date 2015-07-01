@@ -40,6 +40,7 @@
 #include <tmx.h>
 
 typedef unsigned int uint;
+typedef unsigned char ubyte;
 typedef unsigned long int ulong;
 
 typedef struct FuzzyPoint {
