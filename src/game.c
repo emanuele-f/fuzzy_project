@@ -1,11 +1,11 @@
 #include "game.h"
 #include "gids.h"
 
-Chess * fuzzy_chess_add(Player * pg, FuzzyFooes foo, ulong x, ulong y)
+FuzzyChess * fuzzy_chess_add(FuzzyPlayer * pg, FuzzyFooes foo, ulong x, ulong y)
 {
     char * grp = GID_LINK;
     FuzzyArea * atkarea;
-    Chess * chess, * l;
+    FuzzyChess * chess, * l;
 
     // Select foo asset
     switch (foo) {
@@ -16,7 +16,7 @@ Chess * fuzzy_chess_add(Player * pg, FuzzyFooes foo, ulong x, ulong y)
 
     }
 
-    chess = fuzzy_new(Chess);
+    chess = fuzzy_new(FuzzyChess);
     chess->x = x;
     chess->y = y;
     chess->atkarea = atkarea;
@@ -37,9 +37,9 @@ Chess * fuzzy_chess_add(Player * pg, FuzzyFooes foo, ulong x, ulong y)
     return chess;
 }
 
-Chess * fuzzy_chess_at(Player * player, ulong x, ulong y)
+FuzzyChess * fuzzy_chess_at(FuzzyPlayer * player, ulong x, ulong y)
 {
-    Chess * chess;
+    FuzzyChess * chess;
 
     chess = player->chess_l;
     while(chess) {
@@ -51,7 +51,7 @@ Chess * fuzzy_chess_at(Player * player, ulong x, ulong y)
     return NULL;
 }
 
-static bool _pay_sp_requirement(Player * player, uint sp_req)
+static bool _pay_sp_requirement(FuzzyPlayer * player, uint sp_req)
 {
     if (player->soul_points < sp_req) {
         fuzzy_debug("Not enough SP!");
@@ -62,7 +62,7 @@ static bool _pay_sp_requirement(Player * player, uint sp_req)
     return true;
 }
 
-bool fuzzy_chess_move(Chess * chess, ulong nx, ulong ny)
+bool fuzzy_chess_move(FuzzyChess * chess, ulong nx, ulong ny)
 {
     if (fuzzy_map_spy(chess->owner->map, FUZZY_LAYER_SPRITES, nx, ny) != FUZZY_CELL_EMPTY)
         // collision
@@ -75,9 +75,9 @@ bool fuzzy_chess_move(Chess * chess, ulong nx, ulong ny)
 }
 
 /* pre: target is in attack area and there is a target */
-bool fuzzy_chess_attack(Chess * chess, Player * plist, ulong tx, ulong ty)
+bool fuzzy_chess_attack(FuzzyChess * chess, FuzzyPlayer * plist, ulong tx, ulong ty)
 {
-    Player * player;
+    FuzzyPlayer * player;
 
     player = plist;
     while (player) {
@@ -94,7 +94,7 @@ bool fuzzy_chess_attack(Chess * chess, Player * plist, ulong tx, ulong ty)
     return false;
 }
 
-static void _fuzzy_chess_free(Chess * chess)
+static void _fuzzy_chess_free(FuzzyChess * chess)
 {
     const ulong x = chess->x;
     const ulong y = chess->y;
@@ -103,7 +103,7 @@ static void _fuzzy_chess_free(Chess * chess)
     free(chess);
 }
 
-void fuzzy_chess_show_attack_area(Chess * chess)
+void fuzzy_chess_show_attack_area(FuzzyChess * chess)
 {
     FuzzyAreaIterator iterator;
     FuzzyPoint limit, pt;
@@ -119,7 +119,7 @@ void fuzzy_chess_show_attack_area(Chess * chess)
             fuzzy_sprite_create(chess->owner->map, FUZZY_LAYER_BELOW, GID_ATTACK_AREA, iterator.pos.x, iterator.pos.y);
 }
 
-void fuzzy_chess_hide_attack_area(Chess * chess)
+void fuzzy_chess_hide_attack_area(FuzzyChess * chess)
 {
     FuzzyAreaIterator iterator;
     FuzzyPoint limit, pt;
@@ -135,7 +135,7 @@ void fuzzy_chess_hide_attack_area(Chess * chess)
             fuzzy_sprite_destroy(chess->owner->map, FUZZY_LAYER_BELOW, iterator.pos.x, iterator.pos.y);
 }
 
-bool fuzzy_chess_inside_target_area(Chess * chess, ulong tx, ulong ty)
+bool fuzzy_chess_inside_target_area(FuzzyChess * chess, ulong tx, ulong ty)
 {
     FuzzyPoint pivot, pt;
 
@@ -152,15 +152,15 @@ bool fuzzy_chess_inside_target_area(Chess * chess, ulong tx, ulong ty)
     return false;
 }
 
-static uint _PlayerCtr = 0;
+static uint _FuzzyPlayerCtr = 0;
 
 /* player related */
-Player * fuzzy_player_new(Player ** plist, FuzzyPlayerType type, char * name)
+FuzzyPlayer * fuzzy_player_new(FuzzyPlayer ** plist, FuzzyFuzzyPlayerType type, char * name)
 {
-    Player * player, * p;
+    FuzzyPlayer * player, * p;
 
-    player = fuzzy_new(Player);
-    player->id = _PlayerCtr++;
+    player = fuzzy_new(FuzzyPlayer);
+    player->id = _FuzzyPlayerCtr++;
     player->chess_l = NULL;
     player->type = type;
     player->soul_time = 0;
@@ -188,14 +188,14 @@ void fuzzy_player_free()
 
 /* Local player actions */
 
-bool fuzzy_chess_local_attack(Player * player, Chess * chess, ulong tx, ulong ty)
+bool fuzzy_chess_local_attack(FuzzyPlayer * player, FuzzyChess * chess, ulong tx, ulong ty)
 {
     if (! _pay_sp_requirement(player, SP_ATTACK))
         return false;
     return fuzzy_chess_attack(chess, player, tx, ty);
 }
 
-bool fuzzy_chess_local_move(Player * player, Chess * chess, ulong nx, ulong ny)
+bool fuzzy_chess_local_move(FuzzyPlayer * player, FuzzyChess * chess, ulong nx, ulong ny)
 {
     if (! _pay_sp_requirement(player, SP_MOVE))
         // not enough APs
