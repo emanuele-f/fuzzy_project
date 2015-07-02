@@ -61,8 +61,13 @@ typedef struct Player {
 Player * fuzzy_player_new(Player ** plist, FuzzyPlayerType type, char * name);
 void fuzzy_player_free();
 
+/* Available fooes */
+typedef enum FuzzyFooes {
+    FUZZY_FOO_LINK
+}FuzzyFooes;
+
 /* chess related */
-Chess * fuzzy_chess_add(Player * pg, ulong x, ulong y, FuzzyArea * atkarea);
+Chess * fuzzy_chess_add(Player * pg, FuzzyFooes foo, ulong x, ulong y);
 Chess * fuzzy_chess_at(Player * player, ulong x, ulong y);
 bool fuzzy_chess_move(Chess * chess, ulong nx, ulong ny);
 void fuzzy_chess_attack(Chess * chess, ulong tx, ulong ty);

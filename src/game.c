@@ -1,10 +1,20 @@
 #include "game.h"
 #include "gids.h"
 
-Chess * fuzzy_chess_add(Player * pg, ulong x, ulong y, FuzzyArea * atkarea)
+Chess * fuzzy_chess_add(Player * pg, FuzzyFooes foo, ulong x, ulong y)
 {
     char * grp = GID_LINK;
+    FuzzyArea * atkarea;
     Chess * chess, * l;
+
+    // Select foo asset
+    switch (foo) {
+    case FUZZY_FOO_LINK:
+        grp = GID_LINK;
+        atkarea = &FuzzyMeleeMan;
+        break;
+
+    }
 
     chess = fuzzy_new(Chess);
     chess->x = x;

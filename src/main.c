@@ -119,8 +119,8 @@ int main(int argc, char *argv[])
     player->map = fuzzy_map_load("level000.tmx");
     fuzzy_map_update(player->map, 0);
 
-    fuzzy_chess_add(player, 34, 30, &FuzzyMeleeMan);
-    fuzzy_chess_add(player, 33, 30, &FuzzyMeleeMan);
+    fuzzy_chess_add(player, FUZZY_FOO_LINK, 34, 30);
+    fuzzy_chess_add(player, FUZZY_FOO_LINK, 33, 30);
     bool showing_area = false;
     Chess *chess, *focus = NULL;
 
