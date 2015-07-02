@@ -357,6 +357,7 @@ int main(int argc, char *argv[])
     fuzzy_nz_rerror(pthread_join(srv_thread, &retval));
     fuzzy_server_destroy();
     fuzzy_message_del(sendmsg);
+    fuzzy_game_free(game);
 
     al_destroy_event_queue(evqueue);
 	al_destroy_display(display);

@@ -70,11 +70,11 @@ typedef enum FuzzyFooes {
 /* game related */
 FuzzyGame * fuzzy_game_new(char * mapname);
 void fuzzy_game_free(FuzzyGame * game);
-FuzzyPlayer * fuzzy_game_player_by_id(FuzzyGame * game, ubyte id);
 
 /* player related */
 FuzzyPlayer * fuzzy_player_new(FuzzyGame * game, FuzzyFuzzyPlayerType type, char * name);
-void fuzzy_player_free(FuzzyPlayer * player);
+void fuzzy_player_free(FuzzyGame * game, FuzzyPlayer * player);
+FuzzyPlayer * fuzzy_player_by_id(FuzzyGame * game, ubyte id);
 
 /* chess related */
 FuzzyChess * fuzzy_chess_add(FuzzyGame * game, FuzzyPlayer * pg, FuzzyFooes foo, ulong x, ulong y);

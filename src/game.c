@@ -2,7 +2,7 @@
 #include "gids.h"
 #include "tiles.h"
 
-FuzzyPlayer * fuzzy_game_player_by_id(FuzzyGame * game, ubyte id)
+FuzzyPlayer * fuzzy_player_by_id(FuzzyGame * game, ubyte id)
 {
     FuzzyPlayer * plist = game->players;
 
@@ -32,7 +32,17 @@ FuzzyGame * fuzzy_game_new(char * mapname)
 
 void fuzzy_game_free(FuzzyGame * game)
 {
-    // TODO implement
+    FuzzyPlayer *todel, *next;
+
+    next = game->players;
+    while(next) {
+        todel = next;
+        next = next->next;
+        fuzzy_player_free(game, todel);
+    }
+
+    fuzzy_map_unload(game->map);
+    free(game);
 }
 
 FuzzyChess * fuzzy_chess_add(FuzzyGame * game, FuzzyPlayer * pg, FuzzyFooes foo, ulong x, ulong y)
@@ -127,14 +137,30 @@ bool fuzzy_chess_attack(FuzzyGame * game, FuzzyChess * chess, ulong tx, ulong ty
     return false;
 }
 
+// also removes from owner list
 static void _fuzzy_chess_free(FuzzyGame * game, FuzzyChess * chess)
 {
-    const ulong x = chess->x;
-    const ulong y = chess->y;
+    FuzzyPlayer * player = chess->owner;
+    FuzzyChess *cur, *prec;
 
-    fuzzy_sprite_destroy(game->map, FUZZY_LAYER_SPRITES, x, y);
+    // remove from owner's list
+    prec = NULL;
+    cur = player->chess_l;
+    while(cur) {
+        if (cur == chess) {
+            if (! prec)
+                player->chess_l = cur->next;
+            else
+                prec->next = cur->next;
+        }
+        prec = cur;
+        cur = cur->next;
+    }
+
+    // remove from map
+    fuzzy_sprite_destroy(game->map, FUZZY_LAYER_SPRITES, chess->x, chess->y);
+
     free(chess);
-    // TODO check and implement
 }
 
 void fuzzy_chess_show_attack_area(FuzzyGame * game, FuzzyChess * chess)
@@ -213,9 +239,34 @@ FuzzyPlayer * fuzzy_player_new(FuzzyGame * game, FuzzyFuzzyPlayerType type, char
     return player;
 }
 
-void fuzzy_player_free(FuzzyPlayer * player)
+/* also remove the player from game */
+void fuzzy_player_free(FuzzyGame * game, FuzzyPlayer * player)
 {
-    // TODO implement me
+    FuzzyChess *chess, *todel;
+    FuzzyPlayer *pl, *prec;
+
+    chess = player->chess_l;
+    while(chess) {
+        todel = chess;
+        chess = chess->next;
+        _fuzzy_chess_free(game, todel);
+    }
+
+    // remove from game
+    prec = NULL;
+    pl = game->players;
+    while(pl) {
+        if (pl->id == player->id) {
+            if (! prec)
+                game->players = pl->next;
+            else
+                prec->next = pl->next;
+        }
+        prec = pl;
+        pl = pl->next;
+    }
+
+    free(player);
 }
 
 /* Local player actions */
