@@ -30,39 +30,126 @@
 static int ServerSocket = -1;
 static char ServerKey[FUZZY_SERVERKEY_LEN];
 static bool ServerRun;
+static FuzzyClient * ServerClients = NULL;
 
-static bool _verify_auth()
+static bool _verify_auth(FuzzyClient * client, FUZZY_MESSAGE_TYPES cmdtype)
 {
-    //~ fuzzy_warning(fuzzy_sformat("Client %d is not authorized to perform command %d", clid, cmdid));
+    if (! client->auth) {
+        fuzzy_warning(fuzzy_sformat("Client %d is not authorized to perform command %d", client->socket, cmdtype));
+        return false;
+    }
+    return true;
 }
 
-static void _fuzzy_process_message(FuzzyMessage * msg, int clsock)
+static FuzzyClient * _client_connected(int clsock, struct sockaddr_in * sa_addr)
+{
+    FuzzyClient * cl;
+
+    cl = fuzzy_new(FuzzyClient);
+    cl->socket = clsock;
+    strncpy(cl->ip, inet_ntoa(sa_addr->sin_addr), sizeof(cl->ip));
+    cl->port = sa_addr->sin_port;
+    cl->auth = false;
+    cl->next = NULL;
+
+    // append to clients
+    cl->next = ServerClients;
+    ServerClients = cl;
+
+    return cl;
+}
+
+static void _client_disconnected(int clsock)
+{
+    FuzzyClient *cl, *prev;
+
+    prev = NULL;
+    cl = ServerClients;
+    while(cl) {
+        if (cl->socket == clsock) {
+            if (prev == NULL)
+                ServerClients = cl->next;
+            else
+                prev->next = cl->next;
+            break;
+        }
+        prev = cl;
+        cl = cl->next;
+    }
+
+    if (cl == NULL)
+        fuzzy_critical(fuzzy_sformat("Cannot find client for socket #%d", clsock));
+
+    free(cl);
+}
+
+// get or die
+static FuzzyClient * _get_client_by_socket(int clsock)
+{
+    FuzzyClient *cl;
+
+    cl = ServerClients;
+    while(cl) {
+        if (cl->socket == clsock)
+            return cl;
+        cl = cl->next;
+    }
+
+    fuzzy_critical(fuzzy_sformat("Cannot find client for socket #%d", clsock));
+}
+
+static void _fuzzy_net_error(FuzzyMessage * msg, char * err, FuzzyClient * cl)
+{
+
+    fuzzy_message_clear(msg);
+    fuzzy_message_pushstr(msg, err, FUZZY_NETERROR_CHARS);
+    fuzzy_message_push8(msg, FUZZY_NETCODE_ERROR);
+    fuzzy_message_send(cl->socket, msg);
+}
+
+static void _fuzzy_net_ok(FuzzyMessage * msg, FuzzyClient * cl)
+{
+    fuzzy_message_clear(msg);
+    fuzzy_message_push8(msg, FUZZY_NETCODE_OK);
+    fuzzy_message_send(cl->socket, msg);
+}
+
+static void _fuzzy_process_message(FuzzyMessage * msg, FuzzyClient * client)
 {
     FuzzyCommand cmd;
 
-    if (! fuzzy_protocol_decode_message(msg, &cmd))
+    if (! fuzzy_protocol_decode_message(msg, &cmd)) {
         /* bad message */
+        _fuzzy_net_error(msg, "Malformed message", client);
         return;
-    fuzzy_debug(fuzzy_sformat("Message[%d bytes] from fd %d", msg->buflen, clsock));
+    }
+    fuzzy_debug(fuzzy_sformat("Message[%d bytes] from socket %d", msg->buflen, client->socket));
 
     switch(cmd.type) {
         case FUZZY_COMMAND_AUTHENTICATE:
             if(strncmp(cmd.data.auth.key, ServerKey, FUZZY_SERVERKEY_LEN) != 0) {
-                fuzzy_error(fuzzy_sformat("Wrong key: %s", cmd.data.auth.key));
+                fuzzy_error(fuzzy_sformat("Bad key: %s", cmd.data.auth.key));
+                _fuzzy_net_error(msg, "Bad key", client);
+                return;
             } else {
-                // TODO add auth flag
+                fuzzy_debug(fuzzy_sformat("Client %d authenticated", client->socket));
+                client->auth = true;
             }
             break;
 
         case FUZZY_COMMAND_SHUTDOWN:
-            // TODO check auth
-            fuzzy_debug("Server shutdown command received");
-            ServerRun = false;
+            if (_verify_auth(client, FUZZY_COMMAND_SHUTDOWN)) {
+                fuzzy_debug("Server shutdown command received");
+                ServerRun = false;
+            }
             break;
 
         default:
             fuzzy_critical(fuzzy_sformat("Unknown command type '0x%02x'", cmd.type));
+            return;
     }
+
+    _fuzzy_net_ok(msg, client);
 }
 
 void fuzzy_server_create(int port, char * keyout)
@@ -105,6 +192,7 @@ void * fuzzy_server_loop(void * args)
     fd_set active_fd_set, read_fd_set;
     socklen_t sa_size;
     FuzzyMessage * msg;
+    FuzzyClient * client;
 
     if (ServerSocket == -1)
         fuzzy_critical("Server not running");
@@ -125,23 +213,24 @@ void * fuzzy_server_loop(void * args)
                     /* connection request */
                     sa_size = sizeof(sa_addr);
                     fuzzy_lz_perror(clsock = accept(ServerSocket, (struct sockaddr *)&sa_addr, &sa_size));
-                    fuzzy_debug(fuzzy_sformat("Client %s:%d connected -> fd %d", inet_ntoa(sa_addr.sin_addr), sa_addr.sin_port, clsock));
+                    client = _client_connected(clsock, &sa_addr);
+                    fuzzy_debug(fuzzy_sformat("Client %s:%d connected -> socket #%d", client->ip, client->port, client->socket));
 
                     FD_SET(clsock, &active_fd_set);
                 } else {
+                    client = _get_client_by_socket(i);
                     if ((fuzzy_message_recv(i, msg)) == false) {
                         /* disconnection */
-                        sa_size = sizeof(sa_addr);
-                        fuzzy_lz_perror(getpeername(i, (struct sockaddr *)&sa_addr, &sa_size));
-                        fuzzy_debug(fuzzy_sformat("Client %s:%d disconnected", inet_ntoa(sa_addr.sin_addr), sa_addr.sin_port));
-                        close(i);
-                        FD_CLR (i, &active_fd_set);
+                        fuzzy_debug(fuzzy_sformat("Client %s:%d disconnected", client->ip, client->port));
+                        close(client->socket);
+                        FD_CLR (client->socket, &active_fd_set);
+                        _client_disconnected(client->socket);
                     } else {
                         /* incoming data */
                         bool more = 1;
 
                         while (more) {
-                            _fuzzy_process_message(msg, i);
+                            _fuzzy_process_message(msg, client);
 
                             if (! fuzzy_message_poll(i))
                                 more = false;

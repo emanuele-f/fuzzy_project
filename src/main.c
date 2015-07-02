@@ -60,6 +60,46 @@ static void _chess_move(FuzzyGame * game, FuzzyPlayer * player, FuzzyChess * foc
     }
 }
 
+static void _aaa_menu(FuzzyGame * game, int svsock)
+{
+    bool run = false;
+    FuzzyMessage * msg = fuzzy_message_new();
+    char srvkey[FUZZY_SERVERKEY_LEN];
+    int choice;
+
+    while(! run) {
+        puts("*** O P T I O N S ***");
+        puts("\t0) Play game");
+        puts("\t1) Authenticate");
+        puts("\t2) Create game");
+        puts("\t3) Join game");
+        puts("\t4) Shutdown server");
+        puts("\t5) Exit");
+
+        printf("> ");
+        scanf("%d", &choice);
+
+        switch(choice) {
+        case 0:
+            run = true;
+            break;
+        case 1:
+            printf("Auth key: ");
+            scanf("%s", srvkey);
+            fuzzy_protocol_authenticate(svsock, msg, srvkey);
+            break;
+        case 4:
+            fuzzy_protocol_server_shutdown(svsock, msg);
+            break;
+        case 5:
+            exit(EXIT_SUCCESS);
+            break;
+        }
+    }
+
+    fuzzy_message_del(msg);
+}
+
 int main(int argc, char *argv[])
 {
 	ALLEGRO_DISPLAY *display = NULL;
@@ -142,6 +182,8 @@ int main(int argc, char *argv[])
     int svsock;
     //~ FuzzyMessage * sendmsg = fuzzy_message_new();
     svsock = fuzzy_server_connect(FUZZY_DEFAULT_SERVER_ADDRESS, FUZZY_DEFAULT_SERVER_PORT);
+
+    _aaa_menu(game, svsock);
 
 	/* MAIN loop */
     player->soul_time = al_get_time();

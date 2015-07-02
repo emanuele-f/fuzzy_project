@@ -21,10 +21,11 @@
 #include "fuzzy.h"
 
 /* checks command return code, printing error. Returns true on ok. */
-static bool _check_return_netcode(FuzzyMessage * msg)
+static bool _check_return_netcode(FuzzyMessage * msg, int svsock)
 {
     ubyte8 netcode;
 
+    fuzzy_message_recv(svsock, msg);
     netcode = fuzzy_message_pop8(msg);
 
     if (netcode != FUZZY_NETCODE_OK) {
@@ -72,14 +73,14 @@ bool fuzzy_protocol_server_shutdown(int svsock, FuzzyMessage * msg)
     fuzzy_message_push8(msg, FUZZY_COMMAND_SHUTDOWN);
     fuzzy_message_send(svsock, msg);
 
-    return _check_return_netcode(msg);
+    return _check_return_netcode(msg, svsock);
 }
 
 bool fuzzy_protocol_authenticate(int svsock, FuzzyMessage * msg, char * key)
 {
-    fuzzy_message_push8(msg, FUZZY_COMMAND_AUTHENTICATE);
     fuzzy_message_pushstr(msg, key, FUZZY_SERVERKEY_LEN);
+    fuzzy_message_push8(msg, FUZZY_COMMAND_AUTHENTICATE);
     fuzzy_message_send(svsock, msg);
 
-    return _check_return_netcode(msg);
+    return _check_return_netcode(msg, svsock);
 }
