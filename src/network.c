@@ -44,7 +44,7 @@ static void _fuzzy_message_expand(FuzzyMessage * msg, ssize_t nbuflen)
         return;
     else if (msg->buflen > nbuflen)
         fuzzy_critical("Message resize to lower size");
-        
+
     if (msg->cursor > nbuflen)
         fuzzy_critical(fuzzy_sformat("Cursor %d bytes outside valid area", msg->cursor-nbuflen));
 
@@ -237,12 +237,12 @@ bool fuzzy_message_recv(int sock, FuzzyMessage * msg)
     ssize_t recved;
     ubyte32 len;
 
-    if (recv(sock, &len, 4, 0) < 0) {
-        if (errno == EPIPE)
-            return false;
-        else
-            fuzzy_critical(fuzzy_strerror(errno));
-    }
+    recved = recv(sock, &len, 4, 0);
+    if (recved == 0)
+        // disconnected
+        return false;
+    else if (recved < 0)
+        fuzzy_critical(fuzzy_strerror(errno));
 
     if (msg->buflen < len)
         _fuzzy_message_expand(msg, len);
