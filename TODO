@@ -1,9 +1,9 @@
-- Implement player free function
+- Separate server from client
+- Map metadata to describe player slots
 - Migrate code to use a linked list library
 - Add test module for area.c
 - Animation module to interact either with map tiles or with primitives
 - Check map bounds before perform chess logic
-- Game engine: hold active sprites
 - Implement path hot points
 
 - Add chat vignette

@@ -15,12 +15,15 @@ MY_LIBS = $(shell pkg-config --libs allegro-5.0 allegro_image-5.0\
   allegro_primitives-5.0 allegro_font-5.0) -lfuzzy -ltmx
 
 default: export CFLAGS += -O2
-default: main
+default: main server
 
 # OBJ targets
 OBJ_TARGETS_ = tiles.o fuzzy.o network.o protocol.o server.o area.o game.o
 
 $(BUILD_FOLDER)/main.o: $(SRC_FOLDER)/main.c $(SRC_FOLDER)/fuzzy.h
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+$(BUILD_FOLDER)/server_main.o: $(SRC_FOLDER)/server_main.c $(SRC_FOLDER)/fuzzy.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 OBJ_TARGETS = $(addprefix $(BUILD_FOLDER)/, $(OBJ_TARGETS_))
@@ -33,6 +36,9 @@ LIB_TMX=$(BUILD_FOLDER)/tmx/libtmx.a
 
 main: $(BUILD_FOLDER)/main.o $(LIB_TMX) $(LIB_FUZZY)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o main $< $(LDLIBS) $(MY_LIBS)
+
+server: $(BUILD_FOLDER)/server_main.o $(LIB_FUZZY)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o server $< $(LDLIBS) $(MY_LIBS)
 
 $(LIB_FUZZY): $(OBJ_TARGETS)
 	rm -f $(BUILD_FOLDER)/libfuzzy.a
@@ -60,6 +66,7 @@ debug: export CFLAGS += -g -DDEBUG
 debug:
 	@echo "'make clean' before changing build type!"
 	make -e main
+	make -e server
 
 tests: export CFLAGS += -fprofile-arcs -ftest-coverage -DFUZZY_DATA_FOLDER=\"../../data\" -DFUZZY_SUPPRESS_DEBUG
 tests: export LDLIBS += -lgcov

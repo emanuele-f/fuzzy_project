@@ -22,9 +22,9 @@
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
 #include "fuzzy.h"
-#include "server.h"
 #include "network.h"
 #include "protocol.h"
+#include "server.h"
 #include "tiles.h"
 #include "gids.h"
 #include "game.h"
@@ -138,15 +138,9 @@ int main(int argc, char *argv[])
     fps_accum = fps_time = 0;
     fps = FPS;
 #endif
-
-    /* Server setup */
-    pthread_t srv_thread;
+    /* Server connection */
     int svsock;
-    char srvkey[FUZZY_SERVERKEY_LEN];
-    FuzzyMessage * sendmsg = fuzzy_message_new();
-
-    fuzzy_server_create(FUZZY_DEFAULT_SERVER_PORT, srvkey);
-    fuzzy_nz_rerror(pthread_create(&srv_thread, NULL, fuzzy_server_loop, NULL));
+    //~ FuzzyMessage * sendmsg = fuzzy_message_new();
     svsock = fuzzy_server_connect(FUZZY_DEFAULT_SERVER_ADDRESS, FUZZY_DEFAULT_SERVER_PORT);
 
 	/* MAIN loop */
@@ -352,11 +346,10 @@ int main(int argc, char *argv[])
     }
 
 	/* Cleanup */
-    void * retval;
-    fuzzy_protocol_server_shutdown(svsock, sendmsg, srvkey);
-    fuzzy_nz_rerror(pthread_join(srv_thread, &retval));
-    fuzzy_server_destroy();
-    fuzzy_message_del(sendmsg);
+    //~ void * retval;
+    //~ char srvkey[FUZZY_SERVERKEY_LEN];
+    //~ fuzzy_protocol_server_shutdown(svsock, sendmsg, srvkey);
+    //~ fuzzy_message_del(sendmsg);
     fuzzy_game_free(game);
 
     al_destroy_event_queue(evqueue);
