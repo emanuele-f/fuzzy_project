@@ -66,6 +66,7 @@ ubyte8 fuzzy_message_pop8(FuzzyMessage * msg);
 ubyte16 fuzzy_message_pop16(FuzzyMessage * msg);
 ubyte32 fuzzy_message_pop32(FuzzyMessage * msg);
 void fuzzy_message_popstr(FuzzyMessage * msg, char * out, ssize_t len);
+void fuzzy_message_clear(FuzzyMessage * msg);
 
 /* Push fitting uint */
 void fuzzy_message_push8uint(FuzzyMessage * msg, uint data);

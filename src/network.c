@@ -196,6 +196,11 @@ void fuzzy_message_push32uint(FuzzyMessage * msg, uint data)
     fuzzy_message_push32(msg, (ubyte32)data);
 }
 
+void fuzzy_message_clear(FuzzyMessage * msg)
+{
+    msg->cursor = 0;
+}
+
 /* send entire message */
 void fuzzy_message_send(int sock, FuzzyMessage * msg)
 {
