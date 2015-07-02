@@ -70,7 +70,7 @@ typedef enum FuzzyFooes {
 Chess * fuzzy_chess_add(Player * pg, FuzzyFooes foo, ulong x, ulong y);
 Chess * fuzzy_chess_at(Player * player, ulong x, ulong y);
 bool fuzzy_chess_move(Chess * chess, ulong nx, ulong ny);
-void fuzzy_chess_attack(Chess * chess, ulong tx, ulong ty);
+bool fuzzy_chess_attack(Chess * chess, Player * plist, ulong tx, ulong ty);
 void fuzzy_chess_show_attack_area(Chess * chess);
 void fuzzy_chess_hide_attack_area(Chess * chess);
 bool fuzzy_chess_inside_target_area(Chess * chess, ulong tx, ulong ty);

@@ -75,9 +75,23 @@ bool fuzzy_chess_move(Chess * chess, ulong nx, ulong ny)
 }
 
 /* pre: target is in attack area and there is a target */
-void fuzzy_chess_attack(Chess * chess, ulong tx, ulong ty)
+bool fuzzy_chess_attack(Chess * chess, Player * plist, ulong tx, ulong ty)
 {
-    fuzzy_sprite_destroy(chess->owner->map, FUZZY_LAYER_SPRITES, tx, ty);
+    Player * player;
+
+    player = plist;
+    while (player) {
+        if (player->id != chess->owner->id) {
+            if (fuzzy_chess_at(player, tx, ty)) {
+                fuzzy_sprite_destroy(player->map, FUZZY_LAYER_SPRITES, tx, ty);
+                return true;
+            }
+        }
+
+        player = player->next;
+    }
+
+    return false;
 }
 
 static void _fuzzy_chess_free(Chess * chess)
@@ -178,8 +192,7 @@ bool fuzzy_chess_local_attack(Player * player, Chess * chess, ulong tx, ulong ty
 {
     if (! _pay_sp_requirement(player, SP_ATTACK))
         return false;
-    fuzzy_chess_attack(chess, tx, ty);
-    return true;
+    return fuzzy_chess_attack(chess, player, tx, ty);
 }
 
 bool fuzzy_chess_local_move(Player * player, Chess * chess, ulong nx, ulong ny)
