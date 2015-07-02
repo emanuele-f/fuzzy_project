@@ -29,6 +29,12 @@
 #define SP_MOVE 1
 #define SP_ATTACK 5
 
+typedef enum FuzzyPlayerType {
+    FUZZY_PLAYER_LOCAL,          // a local human player
+    FUZZY_PLAYER_REMOTE,         // a remote human player
+    FUZZY_PLAYER_CPU,            // a local non human player
+}FuzzyPlayerType;
+
 typedef struct Chess {
     ulong x;
     ulong y;
@@ -38,24 +44,22 @@ typedef struct Chess {
 }Chess;
 
 typedef struct Player {
+    // meta
     ubyte id;
+    FuzzyPlayerType type;
     char name[32];
-    Chess * chess_l;
+
+    // data
+    double soul_time;
+    uint soul_points;
     struct FuzzyMap * map;
+    Chess * chess_l;
     struct Player * next;
 }Player;
 
-typedef struct LocalPlayer {
-    Player * player;
-    double soul_time;
-    uint soul_points;
-}LocalPlayer;
-
 /* player related */
-Player * fuzzy_player_new(Player ** plist, char * name);
+Player * fuzzy_player_new(Player ** plist, FuzzyPlayerType type, char * name);
 void fuzzy_player_free();
-LocalPlayer * fuzzy_localplayer_new(LocalPlayer ** lplist, Player ** plist, char * name);
-void fuzzy_localplayer_free();
 
 /* chess related */
 Chess * fuzzy_chess_add(Player * pg, ulong x, ulong y, FuzzyArea * atkarea);
@@ -65,5 +69,5 @@ void fuzzy_chess_attack(Chess * chess, ulong tx, ulong ty);
 void fuzzy_chess_show_attack_area(Chess * chess);
 void fuzzy_chess_hide_attack_area(Chess * chess);
 bool fuzzy_chess_inside_target_area(Chess * chess, ulong tx, ulong ty);
-bool fuzzy_chess_local_attack(LocalPlayer * player, Chess * chess, ulong tx, ulong ty);
-bool fuzzy_chess_local_move(LocalPlayer * player, Chess * chess, ulong nx, ulong ny);
+bool fuzzy_chess_local_attack(Player * player, Chess * chess, ulong tx, ulong ty);
+bool fuzzy_chess_local_move(Player * player, Chess * chess, ulong nx, ulong ny);
