@@ -46,7 +46,7 @@
 
 #define _attack_area_off() do{\
     if(showing_area) {\
-        fuzzy_chess_hide_attack_area(chess);\
+        fuzzy_chess_hide_attack_area(focus);\
         showing_area = false;\
     }\
 }while(0)
@@ -121,6 +121,7 @@ int main(int argc, char *argv[])
     fuzzy_map_update(player->player->map, 0);
 
     fuzzy_chess_add(player->player, 34, 30, &FuzzyMeleeMan);
+    fuzzy_chess_add(player->player, 33, 30, &FuzzyMeleeMan);
     bool showing_area = false;
     Chess *chess, *focus = NULL;
 
@@ -207,9 +208,7 @@ int main(int argc, char *argv[])
             if(! focus)
                 break;
 
-            if (showing_area)
-                /* abort attack */
-                _attack_area_off();
+            _attack_area_off();
 
             switch(event.keyboard.keycode) {
                 case ALLEGRO_KEY_W:
@@ -256,18 +255,18 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
                 printf("SELECT %d %d\n", tx, ty);
 #endif
-                if(showing_area && fuzzy_chess_inside_target_area(chess, tx, ty)) {
+                if(showing_area && fuzzy_chess_inside_target_area(focus, tx, ty)) {
                     /* select attack target */
                     if (fuzzy_map_spy(player->player->map, FUZZY_LAYER_SPRITES, tx, ty) == FUZZY_CELL_SPRITE) {
-                        if (fuzzy_chess_local_attack(player, chess, tx, ty))
+                        if (fuzzy_chess_local_attack(player, focus, tx, ty))
                             _attack_area_off();
                     }
                 } else {
                     /* select chess */
                     chess = fuzzy_chess_at(player->player, tx, ty);
                     if (chess && focus != chess) {
-                        if (showing_area)
-                            _attack_area_off();
+                        _attack_area_off();
+
                         if (focus != NULL) {
                             // already has a focus effect, just move it
                             fuzzy_sprite_move(player->player->map, FUZZY_LAYER_BELOW, focus->x, focus->y, tx, ty);
