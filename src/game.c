@@ -118,25 +118,6 @@ bool fuzzy_chess_move(FuzzyGame * game, FuzzyChess * chess, ulong nx, ulong ny)
     return true;
 }
 
-bool fuzzy_chess_attack(FuzzyGame * game, FuzzyChess * chess, ulong tx, ulong ty)
-{
-    FuzzyPlayer * player;
-
-    player = game->players;
-    while (player) {
-        if (player->id != chess->owner->id) {
-            if (fuzzy_chess_at(game, player, tx, ty)) {
-                fuzzy_sprite_destroy(game->map, FUZZY_LAYER_SPRITES, tx, ty);
-                return true;
-            }
-        }
-
-        player = player->next;
-    }
-
-    return false;
-}
-
 // also removes from owner list
 static void _fuzzy_chess_free(FuzzyGame * game, FuzzyChess * chess)
 {
@@ -161,6 +142,27 @@ static void _fuzzy_chess_free(FuzzyGame * game, FuzzyChess * chess)
     fuzzy_sprite_destroy(game->map, FUZZY_LAYER_SPRITES, chess->x, chess->y);
 
     free(chess);
+}
+
+bool fuzzy_chess_attack(FuzzyGame * game, FuzzyChess * chess, ulong tx, ulong ty)
+{
+    FuzzyPlayer * player;
+    FuzzyChess * target;
+
+    player = game->players;
+    while (player) {
+        if (player->id != chess->owner->id) {
+            target = fuzzy_chess_at(game, player, tx, ty);
+            if (target) {
+                _fuzzy_chess_free(game, target);
+                return true;
+            }
+        }
+
+        player = player->next;
+    }
+
+    return false;
 }
 
 void fuzzy_chess_show_attack_area(FuzzyGame * game, FuzzyChess * chess)
