@@ -39,24 +39,24 @@
 
 #define _attack_area_on() do {\
     if (!showing_area && focus) {\
-        fuzzy_chess_show_attack_area(focus);\
+        fuzzy_chess_show_attack_area(game, focus);\
         showing_area = true;\
     }\
 }while(0)
 
 #define _attack_area_off() do{\
     if(showing_area) {\
-        fuzzy_chess_hide_attack_area(focus);\
+        fuzzy_chess_hide_attack_area(game, focus);\
         showing_area = false;\
     }\
 }while(0)
 
-static void _chess_move(Player * player, Chess * focus, ulong x, ulong y)
+static void _chess_move(FuzzyGame * game, FuzzyPlayer * player, FuzzyChess * focus, ulong x, ulong y)
 {
     if (focus) {
         ulong ox = focus->x, oy = focus->y;
-        if (fuzzy_chess_local_move(player, focus, x, y))
-            fuzzy_sprite_move(focus->owner->map, FUZZY_LAYER_BELOW, ox, oy, x, y);
+        if (fuzzy_chess_local_move(game, player, focus, x, y))
+            fuzzy_sprite_move(game->map, FUZZY_LAYER_BELOW, ox, oy, x, y);
     }
 }
 
@@ -72,8 +72,8 @@ int main(int argc, char *argv[])
     float clock_ray = 0, clock_angle = 0;
     int clock_ray_alpha;
     float soul_interval = SOUL_TIME_INTERVAL;
-    Player * player;
-    Player * plist = NULL;
+    FuzzyPlayer *player, *cpu;
+    FuzzyGame * game;
 
 	bool running = true;
 	bool redraw = true;
@@ -113,19 +113,18 @@ int main(int argc, char *argv[])
     al_register_event_source(evqueue, al_get_mouse_event_source());
 
     /* Game setup */
-    player = fuzzy_player_new(&plist, FUZZY_PLAYER_LOCAL, "Dolly");
-    fuzzy_areadb_init();
-    fuzzy_map_setup();
-    player->map = fuzzy_map_load("level000.tmx");
-    fuzzy_map_update(player->map, 0);
+    game = fuzzy_game_new("level000.tmx");
+    player = fuzzy_player_new(game, FUZZY_PLAYER_LOCAL, "Dolly");
+    cpu = fuzzy_player_new(game, FUZZY_PLAYER_CPU, "CPU_0");
 
-    fuzzy_chess_add(player, FUZZY_FOO_LINK, 34, 30);
-    fuzzy_chess_add(player, FUZZY_FOO_LINK, 33, 30);
+    fuzzy_chess_add(game, player, FUZZY_FOO_LINK, 34, 30);
+    fuzzy_chess_add(game, player, FUZZY_FOO_LINK, 33, 30);
+    fuzzy_chess_add(game, cpu, FUZZY_FOO_LINK, 40, 30);
     bool showing_area = false;
-    Chess *chess, *focus = NULL;
+    FuzzyChess *chess, *focus = NULL;
 
 	al_clear_to_color(al_map_rgb(0, 0, 0));
-    al_draw_bitmap(player->map->bitmap, -map_x, -map_y, 0);
+    al_draw_bitmap(game->map->bitmap, -map_x, -map_y, 0);
 	al_flip_display();
 
 #if DEBUG
@@ -179,8 +178,8 @@ int main(int argc, char *argv[])
             al_get_keyboard_state(&keyboard_state);
             if (al_key_down(&keyboard_state, ALLEGRO_KEY_RIGHT)) {
                 map_x += 5;
-                if (map_x > (player->map->tot_width - screen_width))
-                    map_x = player->map->tot_width - screen_width;
+                if (map_x > (game->map->tot_width - screen_width))
+                    map_x = game->map->tot_width - screen_width;
             }
             else if (al_key_down(&keyboard_state, ALLEGRO_KEY_LEFT)) {
                 map_x -= 5;
@@ -194,8 +193,8 @@ int main(int argc, char *argv[])
             }
             else if (al_key_down(&keyboard_state, ALLEGRO_KEY_DOWN)) {
                 map_y += 5;
-                if (map_y > (player->map->tot_height - screen_height))
-                    map_y = player->map->tot_height - screen_height;
+                if (map_y > (game->map->tot_height - screen_height))
+                    map_y = game->map->tot_height - screen_height;
             } else if (al_key_down(&keyboard_state, ALLEGRO_KEY_O)) {
                 soul_interval = fuzzy_max(0.1, soul_interval - 0.05);
             } else if (al_key_down(&keyboard_state, ALLEGRO_KEY_P)) {
@@ -211,16 +210,16 @@ int main(int argc, char *argv[])
 
             switch(event.keyboard.keycode) {
                 case ALLEGRO_KEY_W:
-                    _chess_move(player, focus, focus->x, focus->y-1);
+                    _chess_move(game, player, focus, focus->x, focus->y-1);
                     break;
                 case ALLEGRO_KEY_A:
-                    _chess_move(player, focus, focus->x-1, focus->y);
+                    _chess_move(game, player, focus, focus->x-1, focus->y);
                     break;
                 case ALLEGRO_KEY_S:
-                    _chess_move(player, focus, focus->x, focus->y+1);
+                    _chess_move(game, player, focus, focus->x, focus->y+1);
                     break;
                 case ALLEGRO_KEY_D:
-                    _chess_move(player, focus, focus->x+1, focus->y);
+                    _chess_move(game, player, focus, focus->x+1, focus->y);
                     break;
 
                 case ALLEGRO_KEY_K:
@@ -249,28 +248,28 @@ int main(int argc, char *argv[])
                 _attack_area_on();
             } else if(event.mouse.button == LEFT_BUTTON) {
                 /* world to tile coords */
-                int tx = (event.mouse.x+map_x) / player->map->tile_width;
-                int ty = (event.mouse.y+map_y) / player->map->tile_height;
+                int tx = (event.mouse.x+map_x) / game->map->tile_width;
+                int ty = (event.mouse.y+map_y) / game->map->tile_height;
 #ifdef DEBUG
                 printf("SELECT %d %d\n", tx, ty);
 #endif
-                if(showing_area && fuzzy_chess_inside_target_area(focus, tx, ty)) {
+                if(showing_area && fuzzy_chess_inside_target_area(game, focus, tx, ty)) {
                     /* select attack target */
-                    if (fuzzy_map_spy(player->map, FUZZY_LAYER_SPRITES, tx, ty) == FUZZY_CELL_SPRITE) {
-                        if (fuzzy_chess_local_attack(player, focus, tx, ty))
+                    if (fuzzy_map_spy(game->map, FUZZY_LAYER_SPRITES, tx, ty) == FUZZY_CELL_SPRITE) {
+                        if (fuzzy_chess_local_attack(game, player, focus, tx, ty))
                             _attack_area_off();
                     }
                 } else {
                     /* select chess */
-                    chess = fuzzy_chess_at(player, tx, ty);
+                    chess = fuzzy_chess_at(game, player, tx, ty);
                     if (chess && focus != chess) {
                         _attack_area_off();
 
                         if (focus != NULL) {
                             // already has a focus effect, just move it
-                            fuzzy_sprite_move(player->map, FUZZY_LAYER_BELOW, focus->x, focus->y, tx, ty);
+                            fuzzy_sprite_move(game->map, FUZZY_LAYER_BELOW, focus->x, focus->y, tx, ty);
                         } else {
-                            fuzzy_sprite_create(player->map, FUZZY_LAYER_BELOW, GID_TARGET, tx, ty);
+                            fuzzy_sprite_create(game->map, FUZZY_LAYER_BELOW, GID_TARGET, tx, ty);
                         }
                         focus = chess;
                     } else if (! chess) {
@@ -279,7 +278,7 @@ int main(int argc, char *argv[])
                             _attack_area_off();
                         } else if(focus) {
                             // remove the focus
-                            fuzzy_sprite_destroy(player->map, FUZZY_LAYER_BELOW, focus->x, focus->y);
+                            fuzzy_sprite_destroy(game->map, FUZZY_LAYER_BELOW, focus->x, focus->y);
                             focus = NULL;
                         }
                     }
@@ -295,16 +294,16 @@ int main(int argc, char *argv[])
 
         if (redraw && al_is_event_queue_empty(evqueue)) {
             curtime = al_get_time();
-            fuzzy_map_update(player->map, curtime);
+            fuzzy_map_update(game->map, curtime);
 
             // Clear the screen
             al_clear_to_color(al_map_rgb(0, 0, 0));
-            al_draw_bitmap(player->map->bitmap, -map_x, -map_y, 0);
+            al_draw_bitmap(game->map->bitmap, -map_x, -map_y, 0);
 
 #ifdef GRID_ON
             /* Draw the grid */
-            int tw = player->map->tile_width;
-            int ty = player->map->tile_height;
+            int tw = game->map->tile_width;
+            int ty = game->map->tile_height;
             int x, y;
             for (x=(tw-map_x)%tw; x<screen_width; x+=tw)
                 al_draw_line(x, 0, x, screen_height, al_map_rgba(7,7,7,100), 1);
@@ -359,7 +358,6 @@ int main(int argc, char *argv[])
     fuzzy_server_destroy();
     fuzzy_message_del(sendmsg);
 
-	fuzzy_map_unload(player->map);
     al_destroy_event_queue(evqueue);
 	al_destroy_display(display);
     al_destroy_timer(timer);

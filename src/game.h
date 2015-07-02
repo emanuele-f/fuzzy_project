@@ -56,22 +56,33 @@ typedef struct FuzzyPlayer {
     struct FuzzyPlayer * next;
 }FuzzyPlayer;
 
-/* player related */
-FuzzyPlayer * fuzzy_player_new(FuzzyPlayer ** plist, FuzzyFuzzyPlayerType type, char * name);
-void fuzzy_player_free();
+typedef struct FuzzyGame {
+    FuzzyMap * map;
+    FuzzyPlayer * players;
+    uint _pctr;
+}FuzzyGame;
 
 /* Available fooes */
 typedef enum FuzzyFooes {
     FUZZY_FOO_LINK
 }FuzzyFooes;
 
+/* game related */
+FuzzyGame * fuzzy_game_new(char * mapname);
+void fuzzy_game_free(FuzzyGame * game);
+FuzzyPlayer * fuzzy_game_player_by_id(FuzzyGame * game, ubyte id);
+
+/* player related */
+FuzzyPlayer * fuzzy_player_new(FuzzyGame * game, FuzzyFuzzyPlayerType type, char * name);
+void fuzzy_player_free(FuzzyPlayer * player);
+
 /* chess related */
-FuzzyChess * fuzzy_chess_add(FuzzyPlayer * pg, FuzzyFooes foo, ulong x, ulong y);
-FuzzyChess * fuzzy_chess_at(FuzzyPlayer * player, ulong x, ulong y);
-bool fuzzy_chess_move(FuzzyChess * chess, ulong nx, ulong ny);
-bool fuzzy_chess_attack(FuzzyChess * chess, FuzzyPlayer * plist, ulong tx, ulong ty);
-void fuzzy_chess_show_attack_area(FuzzyChess * chess);
-void fuzzy_chess_hide_attack_area(FuzzyChess * chess);
-bool fuzzy_chess_inside_target_area(FuzzyChess * chess, ulong tx, ulong ty);
-bool fuzzy_chess_local_attack(FuzzyPlayer * player, FuzzyChess * chess, ulong tx, ulong ty);
-bool fuzzy_chess_local_move(FuzzyPlayer * player, FuzzyChess * chess, ulong nx, ulong ny);
+FuzzyChess * fuzzy_chess_add(FuzzyGame * game, FuzzyPlayer * pg, FuzzyFooes foo, ulong x, ulong y);
+FuzzyChess * fuzzy_chess_at(FuzzyGame * game, FuzzyPlayer * player, ulong x, ulong y);
+bool fuzzy_chess_move(FuzzyGame * game, FuzzyChess * chess, ulong nx, ulong ny);
+bool fuzzy_chess_attack(FuzzyGame * game, FuzzyChess * chess, ulong tx, ulong ty);
+void fuzzy_chess_show_attack_area(FuzzyGame * game, FuzzyChess * chess);
+void fuzzy_chess_hide_attack_area(FuzzyGame * game, FuzzyChess * chess);
+bool fuzzy_chess_inside_target_area(FuzzyGame * game, FuzzyChess * chess, ulong tx, ulong ty);
+bool fuzzy_chess_local_attack(FuzzyGame * game, FuzzyPlayer * player, FuzzyChess * chess, ulong tx, ulong ty);
+bool fuzzy_chess_local_move(FuzzyGame * game, FuzzyPlayer * player, FuzzyChess * chess, ulong nx, ulong ny);
