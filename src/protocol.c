@@ -20,7 +20,26 @@
 #include "protocol.h"
 #include "fuzzy.h"
 
-bool fuzzy_protocol_decode_message(FuzzyMessage * msg, FuzzyMessageInfo * info)
+/* checks command return code, printing error. Returns true on ok. */
+static bool _check_return_netcode(FuzzyMessage * msg)
+{
+    ubyte8 netcode;
+
+    netcode = fuzzy_message_pop8(msg);
+
+    if (netcode != FUZZY_NETCODE_OK) {
+        if (netcode == FUZZY_NETCODE_ERROR) {
+            char err[FUZZY_NETERROR_CHARS];
+
+            fuzzy_message_popstr(msg, err, FUZZY_NETERROR_CHARS);
+            fuzzy_error(fuzzy_sformat("Net error: %s", err));
+        }
+        return false;
+    }
+    return true;
+}
+
+bool fuzzy_protocol_decode_message(FuzzyMessage * msg, FuzzyCommand * cmd)
 {
     #define BAD_MSG "Bad message: "
     #define _fuzzy_bad_message(err)\
@@ -30,36 +49,37 @@ bool fuzzy_protocol_decode_message(FuzzyMessage * msg, FuzzyMessageInfo * info)
     } while(0)
 
     if(msg->buflen < 1)
-        _fuzzy_bad_message(BAD_MSG "missing message type");
+        _fuzzy_bad_message(BAD_MSG "missing command type");
 
-    info->type = fuzzy_message_pop8(msg);
-    switch (info->type) {
-    case FUZZY_MESSAGE_TYPE_COMMAND:
-        if(msg->buflen < 1 + FUZZY_SERVERKEY_LEN + 1)
-            _fuzzy_bad_message(BAD_MSG "missing auth key or command type");
+    cmd->type = fuzzy_message_pop8(msg);
+    switch(cmd->type) {
+        case FUZZY_COMMAND_AUTHENTICATE:
+            if(msg->buflen < 1 + FUZZY_SERVERKEY_LEN)
+                _fuzzy_bad_message(BAD_MSG "missing authentication key");
 
-        info->type = FUZZY_MESSAGE_TYPE_COMMAND;
-        fuzzy_message_popstr(msg, info->data.cmd.authkey, FUZZY_SERVERKEY_LEN);
-        info->data.cmd.cmdtype = fuzzy_message_pop8(msg);
-
-        switch(info->data.cmd.cmdtype) {
+            fuzzy_message_popstr(msg, cmd->data.auth.key, FUZZY_SERVERKEY_LEN);
+            break;
         case FUZZY_COMMAND_SHUTDOWN:
             break;
         default:
-            _fuzzy_bad_message(fuzzy_sformat(BAD_MSG "unknown command type '0x%02x'", info->data.cmd.cmdtype));
-        }
-        break;
-    default:
-        _fuzzy_bad_message(fuzzy_sformat(BAD_MSG "unknown message type '0x%02x'", info->type));
+            _fuzzy_bad_message(fuzzy_sformat(BAD_MSG "unknown command type '0x%02x'", cmd->type));
     }
-
     return true;
 }
 
-void fuzzy_protocol_server_shutdown(int svsock, FuzzyMessage * msg, char * key)
+bool fuzzy_protocol_server_shutdown(int svsock, FuzzyMessage * msg)
 {
     fuzzy_message_push8(msg, FUZZY_COMMAND_SHUTDOWN);
-    fuzzy_message_pushstr(msg, key, FUZZY_SERVERKEY_LEN);
-    fuzzy_message_push8(msg, FUZZY_MESSAGE_TYPE_COMMAND);
     fuzzy_message_send(svsock, msg);
+
+    return _check_return_netcode(msg);
+}
+
+bool fuzzy_protocol_authenticate(int svsock, FuzzyMessage * msg, char * key)
+{
+    fuzzy_message_push8(msg, FUZZY_COMMAND_AUTHENTICATE);
+    fuzzy_message_pushstr(msg, key, FUZZY_SERVERKEY_LEN);
+    fuzzy_message_send(svsock, msg);
+
+    return _check_return_netcode(msg);
 }

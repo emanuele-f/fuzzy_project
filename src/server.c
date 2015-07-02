@@ -31,33 +31,37 @@ static int ServerSocket = -1;
 static char ServerKey[FUZZY_SERVERKEY_LEN];
 static bool ServerRun;
 
+static bool _verify_auth()
+{
+    //~ fuzzy_warning(fuzzy_sformat("Client %d is not authorized to perform command %d", clid, cmdid));
+}
+
 static void _fuzzy_process_message(FuzzyMessage * msg, int clsock)
 {
-    FuzzyMessageInfo minfo;
+    FuzzyCommand cmd;
 
-    if (! fuzzy_protocol_decode_message(msg, &minfo))
+    if (! fuzzy_protocol_decode_message(msg, &cmd))
         /* bad message */
         return;
     fuzzy_debug(fuzzy_sformat("Message[%d bytes] from fd %d", msg->buflen, clsock));
 
-    switch(minfo.type) {
-    case FUZZY_MESSAGE_TYPE_COMMAND:
-        if(strncmp(minfo.data.cmd.authkey, ServerKey, FUZZY_SERVERKEY_LEN) != 0) {
-            fuzzy_error(fuzzy_sformat("Wrong key: %s", minfo.data.cmd.authkey));
-            return;
-        }
+    switch(cmd.type) {
+        case FUZZY_COMMAND_AUTHENTICATE:
+            if(strncmp(cmd.data.auth.key, ServerKey, FUZZY_SERVERKEY_LEN) != 0) {
+                fuzzy_error(fuzzy_sformat("Wrong key: %s", cmd.data.auth.key));
+            } else {
+                // TODO add auth flag
+            }
+            break;
 
-        switch(minfo.data.cmd.cmdtype) {
-            case FUZZY_COMMAND_SHUTDOWN:
-                fuzzy_debug("Server shutdown command received");
-                ServerRun = false;
-                break;
-            default:
-                fuzzy_critical(fuzzy_sformat("Unknown command type '0x%02x'", minfo.data.cmd.cmdtype));
-        }
-        break;
-    default:
-        fuzzy_critical(fuzzy_sformat("Unknown message type '0x%02x'", minfo.type));
+        case FUZZY_COMMAND_SHUTDOWN:
+            // TODO check auth
+            fuzzy_debug("Server shutdown command received");
+            ServerRun = false;
+            break;
+
+        default:
+            fuzzy_critical(fuzzy_sformat("Unknown command type '0x%02x'", cmd.type));
     }
 }
 

@@ -20,37 +20,44 @@
 
 #include "server.h"
 
+/* Return codes */
+#define FUZZY_NETERROR_CHARS 256
+typedef enum FUZZY_NETCODES {
+    FUZZY_NETCODE_OK,
+    FUZZY_NETCODE_ERROR
+} FUZZY_NETCODES;
+
 /* Message types */
-typedef enum FUZZY_MESSAGE_TYPE {
-    FUZZY_MESSAGE_TYPE_COMMAND,
-    FUZZY_MESSAGE_TYPE_GAME
-} FUZZY_MESSAGE_TYPE;
-typedef enum FUZZY_MESSAGE_COMMAND {
-    FUZZY_COMMAND_SHUTDOWN
-} FUZZY_MESSAGE_COMMAND;
-typedef enum FUZZY_MESSAGE_GAME {
-    FUZZY_GAME_STEP
-} FUZZY_MESSAGE_GAME;
+typedef enum FUZZY_MESSAGE_TYPES {
+    FUZZY_COMMAND_SHUTDOWN,
+    FUZZY_COMMAND_AUTHENTICATE,
+    FUZZY_COMMAND_GAME_CREATE,
+    FUZZY_COMMAND_GAME_JOIN,
+    FUZZY_COMMAND_GAME_START,
+    FUZZY_COMMAND_GAME_FINISH,
 
-/* A command */
-typedef struct FuzzyCommandData {
-    FUZZY_MESSAGE_COMMAND cmdtype;
-    char authkey[FUZZY_SERVERKEY_LEN];
-} FuzzyCommandData;
+    FUZZY_COMMAND_PLAYER_STEP,
+    FUZZY_COMMAND_PLAYER_MOVE,
+    FUZZY_COMMAND_PLAYER_ATTACK
+} FUZZY_MESSAGE_TYPES;
 
-/* Message data */
-typedef union FuzzyMessageData {
-    FuzzyCommandData cmd;
-} FuzzyMessageData;
+/* Command specific data */
+struct FuzzyCommandAuth {
+    char key[FUZZY_SERVERKEY_LEN];
+};
+union FuzzyCommandData {
+    struct FuzzyCommandAuth auth;
+};
 
-/* Message info: group attributes */
-typedef struct FuzzyMessageInfo {
-    FUZZY_MESSAGE_TYPE type;
-    FuzzyMessageData data;
-}FuzzyMessageInfo;
+typedef struct FuzzyCommand {
+    FUZZY_MESSAGE_TYPES type;
+    union FuzzyCommandData data;
+} FuzzyCommand;
+
 
 /* Functions */
-void fuzzy_protocol_server_shutdown(int svsock, FuzzyMessage * msg, char * key);
-bool fuzzy_protocol_decode_message(FuzzyMessage * msg, FuzzyMessageInfo * info);
+bool fuzzy_protocol_decode_message(FuzzyMessage * msg, FuzzyCommand * cmd);
+bool fuzzy_protocol_server_shutdown(int svsock, FuzzyMessage * msg);
+bool fuzzy_protocol_authenticate(int svsock, FuzzyMessage * msg, char * key);
 
 #endif
