@@ -1,4 +1,4 @@
-- Implement player related function
+- Implement player free function
 - Migrate code to use a linked list library
 - Add test module for area.c
 - Animation module to interact either with map tiles or with primitives

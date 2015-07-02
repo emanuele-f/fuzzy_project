@@ -32,7 +32,6 @@
 typedef struct Chess {
     ulong x;
     ulong y;
-    bool target;
     FuzzyArea * atkarea;
     struct Player * owner;
     struct Chess * next;
@@ -60,6 +59,7 @@ void fuzzy_localplayer_free();
 
 /* chess related */
 Chess * fuzzy_chess_add(Player * pg, ulong x, ulong y, FuzzyArea * atkarea);
+Chess * fuzzy_chess_at(Player * player, ulong x, ulong y);
 bool fuzzy_chess_move(Chess * chess, ulong nx, ulong ny);
 void fuzzy_chess_attack(Chess * chess, ulong tx, ulong ty);
 void fuzzy_chess_show_attack_area(Chess * chess);

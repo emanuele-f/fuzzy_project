@@ -38,8 +38,8 @@
 #define WINDOW_HEIGHT 480
 
 #define _attack_area_on() do {\
-    if (!showing_area && chess->target) {\
-        fuzzy_chess_show_attack_area(chess);\
+    if (!showing_area && focus) {\
+        fuzzy_chess_show_attack_area(focus);\
         showing_area = true;\
     }\
 }while(0)
@@ -50,6 +50,15 @@
         showing_area = false;\
     }\
 }while(0)
+
+static void _chess_move(LocalPlayer * player, Chess * focus, ulong x, ulong y)
+{
+    if (focus) {
+        ulong ox = focus->x, oy = focus->y;
+        if (fuzzy_chess_local_move(player, focus, x, y))
+            fuzzy_sprite_move(focus->owner->map, FUZZY_LAYER_BELOW, ox, oy, x, y);
+    }
+}
 
 int main(int argc, char *argv[])
 {
@@ -110,8 +119,10 @@ int main(int argc, char *argv[])
     fuzzy_map_setup();
     player->player->map = fuzzy_map_load("level000.tmx");
     fuzzy_map_update(player->player->map, 0);
+
+    fuzzy_chess_add(player->player, 34, 30, &FuzzyMeleeMan);
     bool showing_area = false;
-    Chess * chess = fuzzy_chess_add(player->player, 34, 30, &FuzzyMeleeMan);
+    Chess *chess, *focus = NULL;
 
 	al_clear_to_color(al_map_rgb(0, 0, 0));
     al_draw_bitmap(player->player->map->bitmap, -map_x, -map_y, 0);
@@ -193,7 +204,7 @@ int main(int argc, char *argv[])
             redraw = true;
             break;
         case ALLEGRO_EVENT_KEY_DOWN:
-            if(! chess->target)
+            if(! focus)
                 break;
 
             if (showing_area)
@@ -202,16 +213,16 @@ int main(int argc, char *argv[])
 
             switch(event.keyboard.keycode) {
                 case ALLEGRO_KEY_W:
-                    fuzzy_chess_local_move(player, chess, chess->x, chess->y-1);
+                    _chess_move(player, focus, focus->x, focus->y-1);
                     break;
                 case ALLEGRO_KEY_A:
-                    fuzzy_chess_local_move(player, chess, chess->x-1, chess->y);
+                    _chess_move(player, focus, focus->x-1, focus->y);
                     break;
                 case ALLEGRO_KEY_S:
-                    fuzzy_chess_local_move(player, chess, chess->x, chess->y+1);
+                    _chess_move(player, focus, focus->x, focus->y+1);
                     break;
                 case ALLEGRO_KEY_D:
-                    fuzzy_chess_local_move(player, chess, chess->x+1, chess->y);
+                    _chess_move(player, focus, focus->x+1, focus->y);
                     break;
 
                 case ALLEGRO_KEY_K:
@@ -219,10 +230,12 @@ int main(int argc, char *argv[])
                     break;
                 case ALLEGRO_KEY_SPACE:
                     /* switch attack type */
-                    if (chess->atkarea == &FuzzyMeleeMan)
-                        chess->atkarea = &FuzzyRangedMan;
+                    if (! focus)
+                        break;
+                    if (focus->atkarea == &FuzzyMeleeMan)
+                        focus->atkarea = &FuzzyRangedMan;
                     else
-                        chess->atkarea = &FuzzyMeleeMan;
+                        focus->atkarea = &FuzzyMeleeMan;
                     break;
             }
             break;
@@ -251,19 +264,25 @@ int main(int argc, char *argv[])
                     }
                 } else {
                     /* select chess */
-                    if (chess->x == tx && chess->y == ty) {
-                        if (! chess->target) {
-                            fuzzy_sprite_create(player->player->map, FUZZY_LAYER_BELOW, GID_TARGET, tx, ty);
-                            chess->target = true;
-                        }
-                    } else if (chess->target) {
-                        if (showing_area) {
-                            /* abort attack */
+                    chess = fuzzy_chess_at(player->player, tx, ty);
+                    if (chess && focus != chess) {
+                        if (showing_area)
                             _attack_area_off();
+                        if (focus != NULL) {
+                            // already has a focus effect, just move it
+                            fuzzy_sprite_move(player->player->map, FUZZY_LAYER_BELOW, focus->x, focus->y, tx, ty);
                         } else {
-                            /* remove target */
-                            fuzzy_sprite_destroy(player->player->map, FUZZY_LAYER_BELOW, chess->x, chess->y);
-                            chess->target = false;
+                            fuzzy_sprite_create(player->player->map, FUZZY_LAYER_BELOW, GID_TARGET, tx, ty);
+                        }
+                        focus = chess;
+                    } else if (! chess) {
+                        if (showing_area) {
+                            // just hide the attack area
+                            _attack_area_off();
+                        } else if(focus) {
+                            // remove the focus
+                            fuzzy_sprite_destroy(player->player->map, FUZZY_LAYER_BELOW, focus->x, focus->y);
+                            focus = NULL;
                         }
                     }
                 }
@@ -312,12 +331,15 @@ int main(int argc, char *argv[])
             al_draw_circle(90, screen_height-80, clock_ray, al_map_rgb(80, clock_ray_alpha, 80), 2.0);
 
             /* draw weapon */
-            ALLEGRO_BITMAP * weapon;
-            if (chess->atkarea == &FuzzyMeleeMan)
-                weapon = sword;
-            else
-                weapon = bow;
-            al_draw_scaled_bitmap(weapon, 0, 0, 90, 90, 20, 20, 60, 60, 0);
+            if (focus) {
+                ALLEGRO_BITMAP * weapon;
+
+                if (focus->atkarea == &FuzzyMeleeMan)
+                    weapon = sword;
+                else
+                    weapon = bow;
+                al_draw_scaled_bitmap(weapon, 0, 0, 90, 90, 20, 20, 60, 60, 0);
+            }
 
             al_flip_display();
 #if DEBUG

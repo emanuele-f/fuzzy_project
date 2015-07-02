@@ -4,16 +4,41 @@
 Chess * fuzzy_chess_add(Player * pg, ulong x, ulong y, FuzzyArea * atkarea)
 {
     char * grp = GID_LINK;
-    Chess * chess = fuzzy_new(Chess);
+    Chess * chess, * l;
+
+    chess = fuzzy_new(Chess);
     chess->x = x;
     chess->y = y;
-    chess->target = false;
     chess->atkarea = atkarea;
     chess->owner = pg;
+    chess->next = NULL;
 
     fuzzy_sprite_create(chess->owner->map, FUZZY_LAYER_SPRITES, grp, x, y);
 
+    if (! pg->chess_l) {
+        pg->chess_l = chess;
+    } else {
+        l = pg->chess_l;
+        while (l->next)
+            l = l->next;
+        l->next = chess;
+    }
+
     return chess;
+}
+
+Chess * fuzzy_chess_at(Player * player, ulong x, ulong y)
+{
+    Chess * chess;
+
+    chess = player->chess_l;
+    while(chess) {
+        if (chess->x == x && chess->y==y)
+            return chess;
+        chess = chess->next;
+    }
+
+    return NULL;
 }
 
 static bool _pay_sp_requirement(LocalPlayer * player, uint sp_req)
@@ -33,8 +58,6 @@ bool fuzzy_chess_move(Chess * chess, ulong nx, ulong ny)
         // collision
         return false;
 
-    if (chess->target)
-        fuzzy_sprite_move(chess->owner->map, FUZZY_LAYER_BELOW, chess->x, chess->y, nx, ny);
     fuzzy_sprite_move(chess->owner->map, FUZZY_LAYER_SPRITES, chess->x, chess->y, nx, ny);
     chess->x = nx;
     chess->y = ny;
@@ -52,8 +75,6 @@ static void _fuzzy_chess_free(Chess * chess)
     const ulong x = chess->x;
     const ulong y = chess->y;
 
-    if (chess->target)
-        fuzzy_sprite_destroy(chess->owner->map, FUZZY_LAYER_BELOW, x, y);
     fuzzy_sprite_destroy(chess->owner->map, FUZZY_LAYER_SPRITES, x, y);
     free(chess);
 }
