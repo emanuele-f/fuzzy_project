@@ -154,6 +154,7 @@ static void _fuzzy_process_message(FuzzyMessage * msg, FuzzyClient * client)
 
 void fuzzy_server_create(int port, char * keyout)
 {
+    int yes = 1;
     struct sockaddr_in sa_srv;
     uuid_t key;
 
@@ -162,6 +163,7 @@ void fuzzy_server_create(int port, char * keyout)
     sa_srv.sin_addr.s_addr = htonl(INADDR_ANY);
 
     fuzzy_lz_perror(ServerSocket = socket(AF_INET, SOCK_STREAM, 0));
+    fuzzy_lz_perror(setsockopt(ServerSocket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)));
     uuid_generate_random(key);
     uuid_unparse_upper(key, ServerKey);
     fuzzy_debug(fuzzy_sformat("Server key: %s", ServerKey));
