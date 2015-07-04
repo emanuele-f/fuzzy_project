@@ -25,15 +25,25 @@
 #define FUZZY_DEFAULT_SERVER_ADDRESS "127.0.0.1"
 #define FUZZY_SERVER_BACKLOG 1
 #define FUZZY_SERVERKEY_LEN 37
+#define FUZZY_NET_ROOM_LEN 64
 
 typedef struct FuzzyClient {
     char ip[16];
     ubyte port;
     int socket;
     bool auth;
+    struct FuzzyRoom * room;
 
     fuzzy_list_link(struct FuzzyClient);
 }FuzzyClient;
+
+typedef struct FuzzyRoom {
+    ulong id;
+    char name[FUZZY_NET_ROOM_LEN];
+    FuzzyClient * owner;
+    FuzzyClient * clients;
+    fuzzy_list_link(struct FuzzyRoom);
+}FuzzyRoom;
 
 void fuzzy_server_create(int port, char * keyout);
 void fuzzy_server_destroy();

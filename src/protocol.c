@@ -62,6 +62,18 @@ bool fuzzy_protocol_decode_message(FuzzyMessage * msg, FuzzyCommand * cmd)
             break;
         case FUZZY_COMMAND_SHUTDOWN:
             break;
+        case FUZZY_COMMAND_GAME_CREATE:
+            if(msg->buflen < 1 + FUZZY_NET_ROOM_LEN)
+                _fuzzy_bad_message(BAD_MSG "missing room name");
+
+            fuzzy_message_popstr(msg, cmd->data.room.name, FUZZY_NET_ROOM_LEN);
+            break;
+        case FUZZY_COMMAND_GAME_JOIN:
+            if(msg->buflen < 1 + 4)
+                _fuzzy_bad_message(BAD_MSG "missing room id");
+
+            cmd->data.room.id = fuzzy_message_pop32(msg);
+            break;
         default:
             _fuzzy_bad_message(fuzzy_sformat(BAD_MSG "unknown command type '0x%02x'", cmd->type));
     }
@@ -80,6 +92,31 @@ bool fuzzy_protocol_authenticate(int svsock, FuzzyMessage * msg, char * key)
 {
     fuzzy_message_pushstr(msg, key, FUZZY_SERVERKEY_LEN);
     fuzzy_message_push8(msg, FUZZY_COMMAND_AUTHENTICATE);
+    fuzzy_message_send(svsock, msg);
+
+    return _check_return_netcode(msg, svsock);
+}
+
+// 0 on error, >0 roomid on success
+ulong fuzzy_protocol_create_room(int svsock, FuzzyMessage * msg, char * name)
+{
+    ulong roomid;
+
+    fuzzy_message_pushstr(msg, name, FUZZY_NET_ROOM_LEN);
+    fuzzy_message_push8(msg, FUZZY_COMMAND_GAME_CREATE);
+    fuzzy_message_send(svsock, msg);
+
+    if (! _check_return_netcode(msg, svsock))
+        return 0;
+
+    roomid = fuzzy_message_pop32(msg);
+    return roomid;
+}
+
+bool fuzzy_protocol_join(int svsock, FuzzyMessage * msg, ulong roomid)
+{
+    fuzzy_message_push32(msg, roomid);
+    fuzzy_message_push8(msg, FUZZY_COMMAND_GAME_JOIN);
     fuzzy_message_send(svsock, msg);
 
     return _check_return_netcode(msg, svsock);

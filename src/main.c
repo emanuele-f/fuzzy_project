@@ -66,6 +66,7 @@ static void _aaa_menu(FuzzyGame * game, int svsock)
     FuzzyMessage * msg = fuzzy_message_new();
     char srvkey[FUZZY_SERVERKEY_LEN];
     int choice;
+    ulong roomid;
 
     while(! run) {
         puts("*** O P T I O N S ***");
@@ -87,6 +88,17 @@ static void _aaa_menu(FuzzyGame * game, int svsock)
             printf("Auth key: ");
             scanf("%s", srvkey);
             fuzzy_protocol_authenticate(svsock, msg, srvkey);
+            break;
+        case 2:
+            roomid = fuzzy_protocol_create_room(svsock, msg, "Test room");
+            if (roomid) {
+                printf("Created room #%lu\n", roomid);
+            }
+            break;
+        case 3:
+            printf("Room id: ");
+            scanf("%lu", &roomid);
+            fuzzy_protocol_join(svsock, msg, roomid);
             break;
         case 4:
             fuzzy_protocol_server_shutdown(svsock, msg);

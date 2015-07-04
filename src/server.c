@@ -31,6 +31,8 @@ static int ServerSocket = -1;
 static char ServerKey[FUZZY_SERVERKEY_LEN];
 static bool ServerRun;
 static FuzzyClient * ServerClients = NULL;
+static FuzzyRoom * ServerRooms = NULL;
+static ulong ServerRoomCtr = 1;     // nb. 0 is not considered valid
 
 static bool _verify_auth(FuzzyClient * client, FUZZY_MESSAGE_TYPES cmdtype)
 {
@@ -50,6 +52,7 @@ static FuzzyClient * _client_connected(int clsock, struct sockaddr_in * sa_addr)
     strncpy(cl->ip, inet_ntoa(sa_addr->sin_addr), sizeof(cl->ip));
     cl->port = sa_addr->sin_port;
     cl->auth = false;
+    cl->room = NULL;
     fuzzy_list_null(cl);
 
     fuzzy_list_prepend(ServerClients, cl);
@@ -69,13 +72,48 @@ static FuzzyClient * _get_client_by_socket(int clsock)
     return cl;
 }
 
+/* kick any client out of the room */
+static void _kick_all_out(FuzzyRoom * room)
+{
+    // TODO implement
+}
+
+// assert is not owner
+static void _room_client_disconnected(FuzzyClient * client)
+{
+    // TODO notify disconnection
+    fuzzy_list_remove(FuzzyClient, client->room->clients, client);
+}
+
 static void _client_disconnected(int clsock)
 {
     FuzzyClient *cl;
 
     cl = _get_client_by_socket(clsock);
+
+    if (cl->room && cl->room->owner == cl)
+        _kick_all_out(cl->room);
+    else
+        _room_client_disconnected(cl);
+
     fuzzy_list_remove(FuzzyClient, ServerClients, cl);
     free(cl);
+}
+
+static FuzzyRoom * _new_room(FuzzyClient * owner, char * rname)
+{
+    FuzzyRoom * room;
+
+    room = fuzzy_new(FuzzyRoom);
+    room->id = ServerRoomCtr++;
+    strncpy(room->name, rname, FUZZY_NET_ROOM_LEN);
+    room->owner = owner;
+    room->clients = NULL;
+
+    owner->room = room;
+    fuzzy_list_prepend(ServerRooms, room);
+
+    return room;
 }
 
 static void _fuzzy_net_error(FuzzyMessage * msg, char * err, FuzzyClient * cl)
@@ -97,6 +135,7 @@ static void _fuzzy_net_ok(FuzzyMessage * msg, FuzzyClient * cl)
 static void _fuzzy_process_message(FuzzyMessage * msg, FuzzyClient * client)
 {
     FuzzyCommand cmd;
+    FuzzyRoom * room;
 
     if (! fuzzy_protocol_decode_message(msg, &cmd)) {
         /* bad message */
@@ -122,6 +161,32 @@ static void _fuzzy_process_message(FuzzyMessage * msg, FuzzyClient * client)
                 fuzzy_debug("Server shutdown command received");
                 ServerRun = false;
             }
+            break;
+
+        case FUZZY_COMMAND_GAME_CREATE:
+            if (client->room != NULL) {
+                _fuzzy_net_error(msg, "Disconnect client first", client);
+                return;
+            }
+            room = _new_room(client, cmd.data.room.name);
+            fuzzy_message_clear(msg);
+            fuzzy_message_push32(msg, room->id);
+            fuzzy_message_push8(msg, FUZZY_NETCODE_OK);
+            fuzzy_message_send(client->socket, msg);
+            break;
+
+        case FUZZY_COMMAND_GAME_JOIN:
+            if (client->room != NULL) {
+                _fuzzy_net_error(msg, "Disconnect client first", client);
+                return;
+            }
+            fuzzy_list_findbyattr(FuzzyRoom, ServerRooms, id, cmd.data.room.id, room);
+            if (room == NULL) {
+                _fuzzy_net_error(msg, "Room does not exist", client);
+                return;
+            }
+            client->room = room;
+            fuzzy_list_append(FuzzyClient, room->clients, client);
             break;
 
         default:

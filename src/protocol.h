@@ -45,8 +45,13 @@ typedef enum FUZZY_MESSAGE_TYPES {
 struct FuzzyCommandAuth {
     char key[FUZZY_SERVERKEY_LEN];
 };
+struct FuzzyCommandRoom {
+    ulong id;
+    char name[FUZZY_NET_ROOM_LEN];
+};
 union FuzzyCommandData {
     struct FuzzyCommandAuth auth;
+    struct FuzzyCommandRoom room;
 };
 
 typedef struct FuzzyCommand {
@@ -59,5 +64,7 @@ typedef struct FuzzyCommand {
 bool fuzzy_protocol_decode_message(FuzzyMessage * msg, FuzzyCommand * cmd);
 bool fuzzy_protocol_server_shutdown(int svsock, FuzzyMessage * msg);
 bool fuzzy_protocol_authenticate(int svsock, FuzzyMessage * msg, char * key);
+ulong fuzzy_protocol_create_room(int svsock, FuzzyMessage * msg, char * name);
+bool fuzzy_protocol_join(int svsock, FuzzyMessage * msg, ulong roomid);
 
 #endif
