@@ -53,7 +53,7 @@ struct _AnimationFrame {
     double transtime;                       /* time before next frame */
     uint tx;                                /* x offset within tileset */
     uint ty;                                /* y offset within tileset */
-    struct _AnimationFrame * next;          /* next frame in group */
+    fuzzy_list_link(struct _AnimationFrame);/* next frame in group */
 };
 
 /** Holds a group of related animation frames */
@@ -61,7 +61,7 @@ struct _AnimationGroup {
     char id[MAX_GROUP_CHARS];               /* id of the animation group */
     double totime;                          /* total animation time, in seconds */
     struct _AnimationFrame * frames;        /* list of animation frames */
-    struct _AnimationGroup * next;
+    fuzzy_list_link(struct _AnimationGroup);
 };
 
 /** An animation instance object */
@@ -71,7 +71,7 @@ struct _AnimatedSprite {
     ulong y;                                /* y position in layer */
     ulong curframe;                         /* fid of the current frame */
     double difftime;                        /* tracks time for transition */
-    struct _AnimatedSprite * next;
+    fuzzy_list_link(struct _AnimatedSprite);
 };
 
 /** Contains the list of coordinates which hold an animated sprites */
@@ -184,7 +184,7 @@ static struct _AnimationGroup * _get_sprite_group(FuzzyMap * fmap, struct _Anima
     while (group) {
         if (_group_match(group->id, sprite->grp))
             break;
-        group = group->next;
+        fuzzy_list_next(group);
     }
     if (group == NULL)
         fuzzy_critical(fuzzy_sformat("Animation group #%s not loaded!", sprite->grp));
@@ -209,13 +209,8 @@ static struct _AnimationFrame * _get_sprite_frame(
 ) {
     struct _AnimationFrame * frame;
 
-    /* get the frame */
-    frame = group->frames;
-    while (frame) {
-        if (frame->fid == sprite->curframe)
-            break;
-        frame = frame->next;
-    }
+    fuzzy_list_findbyattr(struct _AnimationFrame, group->frames, fid, sprite->curframe, frame);
+
     if (frame == NULL)
         fuzzy_critical(fuzzy_sformat("Cannot find animation frame '%d' for group '%s' at %d,%d",
           sprite->curframe, sprite->grp, sprite->x, sprite->y));
@@ -249,23 +244,6 @@ static void* al_img_loader(const char *path)
 	al_destroy_path(alpath);
 
 	return (void*)res;
-}
-
-/** Appends a sprite to layer list */
-void _layer_sprite_append(struct _AnimatedLayer * layer, struct _AnimatedSprite * sp)
-{
-    struct _AnimatedSprite * last = layer->sprites;
-
-    if (last == NULL) {
-        layer->sprites = sp;
-    } else {
-        while(last->next)
-            last = last->next;
-
-        last->next = sp;
-    }
-
-    fuzzy_nz_error(sp->next, "Sprite next pointer not null");
 }
 
 /** Look for a tileset containing the specified animation group */
@@ -310,14 +288,14 @@ static struct _AnimatedSprite * _get_sprite_at(struct _AnimatedLayer * elayer, u
             return sprite;
         }
         prec = sprite;
-        sprite = sprite->next;
+        fuzzy_list_next(sprite);
     }
     return NULL;
 }
 
 /* nb real tile information is not saved into ts->tiles list, it is
  * rather stored into layer->content.gids where 0 indicates empty tile
- * 
+ *
  * if info != NULL, save tile information inside
  * Returns true: tile found, false:not found
  */
@@ -327,10 +305,10 @@ static bool _get_tile_at(tmx_map * map, uint lid, ulong x, ulong y, struct _Tile
     tmx_layer * layer;
     uint gid;
     uint tx, ty;
-    
+
     layer = _get_tmx_layer(map, lid);
     gid = _get_gid_in_layer(map, layer, x, y);
-    
+
     ts = tmx_get_tileset(map, gid, &tx, &ty);
     if (ts) {
         /* tile found */
@@ -339,7 +317,7 @@ static bool _get_tile_at(tmx_map * map, uint lid, ulong x, ulong y, struct _Tile
             info->ts = ts;
             info->tx = tx;
             info->ty = ty;
-            
+
             /* try to get tile specific info */
             info->tile = tmx_get_tile(map, gid);
         }
@@ -350,8 +328,6 @@ static bool _get_tile_at(tmx_map * map, uint lid, ulong x, ulong y, struct _Tile
 
 FUZZY_CELL_TYPE fuzzy_map_spy(FuzzyMap * fmap, uint lid, ulong x, ulong y)
 {
-    tmx_map * map = fmap->map;
-    
     if (_get_sprite_at(_get_animation_layer(fmap, lid), x, y, NULL))
         return FUZZY_CELL_SPRITE;
     else if (_get_tile_at(fmap->map, lid, x, y, NULL))
@@ -455,7 +431,7 @@ static void _render_sprites(FuzzyMap *fmap, tmx_layer * layer, struct _AnimatedL
         al_draw_tinted_bitmap_region(tileset, al_map_rgba_f(op, op, op, op),
           frame->tx, frame->ty, w, h, sprite->x*ts->tile_width, sprite->y*ts->tile_height, flags);
 
-        sprite = sprite->next;
+        fuzzy_list_next(sprite);
     }
 }
 
@@ -485,9 +461,9 @@ void fuzzy_map_update(FuzzyMap * fmap, double time)
                 /* next frame */
                 sprite->difftime -= frame->transtime;
 
-                if (frame->next != NULL) {
+                if (fuzzy_list_next_ptr(frame) != NULL) {
                     sprite->curframe++;
-                    frame = frame->next;
+                    fuzzy_list_next(frame);
                 } else {
                     /* back to the first */
                     sprite->curframe = 0;
@@ -495,7 +471,7 @@ void fuzzy_map_update(FuzzyMap * fmap, double time)
                 }
             }
 
-            sprite = sprite->next;
+            fuzzy_list_next(sprite);
         }
     }
 
@@ -533,7 +509,7 @@ void fuzzy_map_render(FuzzyMap *fmap, ALLEGRO_BITMAP * target) {
                 _render_sprites(fmap, layers, elayer);
 			}
 		}
-		layers = layers->next;
+        layers = layers->next;
         i++;
 	}
 
@@ -574,7 +550,7 @@ static struct _AnimatedSprite * _new_sprite(char * group)
     strcpy(sp->grp, group);
     sp->curframe = 0;
     sp->difftime = 0;
-    sp->next = NULL;
+    fuzzy_list_null(sp);
 }
 
 /** Load frames information for an animation group. */
@@ -610,7 +586,7 @@ static void _load_group_frames(struct _AnimationGroup * group, tmx_tileset * ts)
             frame->tx = ts->margin + (tx * ts->tile_width)  + (tx * ts->spacing);
             frame->ty = ts->margin + (ty * ts->tile_height) + (ty * ts->spacing);
             frame->transtime = (msec * 1.) / 1000;
-            frame->next = NULL;
+            fuzzy_list_null(frame);
             totime += frame->transtime;
             fcount++;
 
@@ -620,20 +596,20 @@ static void _load_group_frames(struct _AnimationGroup * group, tmx_tileset * ts)
             else {
                 /* find a place */
                 cur = group->frames;
-                while (cur->next != NULL && cur->fid <= fid) {
+                while (fuzzy_list_next_ptr(cur) != NULL && cur->fid <= fid) {
                     if (cur->fid == fid)
                         fuzzy_critical(fuzzy_sformat("Frame '%d' for group '%s' already loaded!",
                             fid, grp_s)
                         );
-                    cur = cur->next;
+                    fuzzy_list_next(cur);
                 }
-                frame->next = cur->next;
-                cur->next = frame;
+                fuzzy_list_next_ptr(frame) = fuzzy_list_next_ptr(cur);
+                fuzzy_list_next_ptr(cur) = frame;
             }
         }
         tile = tile->next;
     }
-    
+
     group->totime = totime;
     fuzzy_debug(fuzzy_sformat("\t%d frames, %.1f seconds", fcount, totime));
 }
@@ -643,14 +619,14 @@ static void _load_group_frames(struct _AnimationGroup * group, tmx_tileset * ts)
  */
 static struct _AnimationGroup * _load_animation_group(FuzzyMap * fmap, char * grp, tmx_tileset * ts)
 {
-    struct _AnimationGroup *group, *last;
+    struct _AnimationGroup *group;
 
     /* look for existing group */
     group = fmap->groups;
     while (group) {
         if (_group_match(group->id, grp))
             break;
-        group = group->next;
+        fuzzy_list_next(group);
     }
 
     if (group == NULL) {
@@ -659,19 +635,12 @@ static struct _AnimationGroup * _load_animation_group(FuzzyMap * fmap, char * gr
         fuzzy_iz_perror(group);
         strcpy(group->id, grp);
         group->frames = NULL;
-        group->next = NULL;
+        fuzzy_list_null(group);
         group->totime = 0;
         _load_group_frames(group, ts);
 
         /* add to list */
-        if (fmap->groups == NULL) {
-            fmap->groups = group;
-        } else {
-            last = fmap->groups;
-            while (last->next != NULL)
-                last = last->next;
-            last->next = group;
-        }
+        fuzzy_list_append(struct _AnimationGroup, fmap->groups, group);
     }
 
     return group;
@@ -682,7 +651,7 @@ static struct _AnimatedLayer * _discover_layer_sprites(FuzzyMap * fmap, tmx_laye
 {
     ulong i, j;
     struct _AnimatedLayer * elayer;
-    struct _AnimatedSprite *obj, *last;
+    struct _AnimatedSprite *obj;
     tmx_tile * tile;
     tmx_tileset * ts;
     char * grp_s;
@@ -694,7 +663,6 @@ static struct _AnimatedLayer * _discover_layer_sprites(FuzzyMap * fmap, tmx_laye
         /* this layer does not hold any sprite */
         return elayer;
 
-    last = NULL;
     for (i=0; i<map->height; i++) {
 		for (j=0; j<map->width; j++) {
             uint gid = _get_gid_in_layer(map, layer, j, i);
@@ -709,17 +677,13 @@ static struct _AnimatedLayer * _discover_layer_sprites(FuzzyMap * fmap, tmx_laye
                     obj = _new_sprite(grp_s);
                     obj->x = j;
                     obj->y = i;
-                    
+
                     /* set intial animation frame */
                     ulong fframe = _get_tile_ulong_property(tile, FUZZY_TILEPROP_FRAME_ID);
                     obj->curframe = fframe;
 
                     /* add to layer list */
-                    if (last != NULL)
-                        last->next = obj;
-                    else
-                        elayer->sprites = obj;
-                    last = obj;
+                    fuzzy_list_append(struct _AnimatedSprite, elayer->sprites, obj);
                 }
             }
         }
@@ -772,15 +736,15 @@ static void _map_validate(tmx_map * map)
 {
     tmx_layer * layer;
     int i;
-    
+
     layer = map->ly_head;
     for (i=0; i<FUZZY_LAYERS_N; i++) {
         if (layer->type != L_LAYER)
             fuzzy_critical("Only L_LAYER layers are supported!");
-        
+
         if (layer == NULL)
             fuzzy_critical(fuzzy_sformat("Missing layer '%s'", LayerNames[i]));
-            
+
         if (strcmp(layer->name, LayerNames[i]) != 0)
             fuzzy_critical(fuzzy_sformat("Expected layer '%s' but got '%s'", LayerNames[i], layer->name));
         layer = layer->next;
@@ -821,39 +785,19 @@ FuzzyMap * fuzzy_map_load(char * mapfile)
 
 static void _unload_group_frames(struct _AnimationFrame * frames)
 {
-    struct _AnimationFrame *d, *frame;
-
-    frame = frames;
-    while(frame) {
-        d = frame;
-        frame = frame->next;
-        free(d);
-    }
+    fuzzy_list_map(struct _AnimationFrame, frames, free);
 }
 
 static void _unload_animation_groups(struct _AnimationGroup * groups)
 {
-    struct _AnimationGroup *d, *group;
+    #define _dealloc_group(group) _unload_group_frames(group->frames); free(group)
 
-    group = groups;
-    while (group) {
-        _unload_group_frames(group->frames);
-        d = group;
-        group = group->next;
-        free(d);
-    }
+    fuzzy_list_map(struct _AnimationGroup, groups, _dealloc_group);
 }
 
 static void _unload_map_layer(struct _AnimatedLayer * elayer)
 {
-    struct _AnimatedSprite *sprite, *d;
-
-    sprite = elayer->sprites;
-    while (sprite) {
-        d = sprite;
-        sprite = sprite->next;
-        free(d);
-    }
+    fuzzy_list_map(struct _AnimatedSprite, elayer->sprites, free);
 
     if (elayer->bitmap)
         al_destroy_bitmap(elayer->bitmap);
@@ -894,18 +838,18 @@ void fuzzy_sprite_create(FuzzyMap * map, uint lid, char * grp, ulong x, ulong y)
     _load_animation_group(map, grp, ts);
 
     /* register sprite descriptor */
-    _layer_sprite_append(map->elayers[lid], sprite);
+    fuzzy_list_append(struct _AnimatedSprite, map->elayers[lid]->sprites, sprite);
 }
 
 /* Remove a tile from a tmx layer
- 
+
    Note that the tileset still holds a reference to this tile (identified by
    its gid)
  */
 static void _remove_tile_at(tmx_map * map, uint lid, ulong x, ulong y)
 {
     tmx_layer * layer;
-    
+
     layer = _get_tmx_layer(map, lid);
     layer->content.gids[(y*map->width)+x] = 0;
 }
@@ -915,21 +859,21 @@ void fuzzy_sprite_destroy(FuzzyMap * fmap, uint lid, ulong x, ulong y)
     struct _AnimatedSprite * sprite, * prec;
     struct _AnimatedLayer * elayer = fmap->elayers[lid];
     tmx_map * map = fmap->map;
-    
+
     sprite = _get_sprite_at(elayer, x, y, &prec);
     if (sprite == NULL)
         fuzzy_critical("Target position is empty");
-        
+
     /* do delete from list */
     if (prec == NULL)
-        elayer->sprites = sprite->next;
+        elayer->sprites = fuzzy_list_next_ptr(sprite);
     else
-        prec->next = sprite->next;
-        
+        fuzzy_list_next_ptr(prec) = fuzzy_list_next_ptr(sprite);
+
     /* check if it's also loaded into layer list */
     if (_get_tile_at(map, lid, x, y, NULL))
         _remove_tile_at(map, lid, x, y);
-        
+
     free(sprite);
 }
 

@@ -50,37 +50,11 @@ static FuzzyClient * _client_connected(int clsock, struct sockaddr_in * sa_addr)
     strncpy(cl->ip, inet_ntoa(sa_addr->sin_addr), sizeof(cl->ip));
     cl->port = sa_addr->sin_port;
     cl->auth = false;
-    cl->next = NULL;
+    fuzzy_list_null(cl);
 
-    // append to clients
-    cl->next = ServerClients;
-    ServerClients = cl;
+    fuzzy_list_prepend(ServerClients, cl);
 
     return cl;
-}
-
-static void _client_disconnected(int clsock)
-{
-    FuzzyClient *cl, *prev;
-
-    prev = NULL;
-    cl = ServerClients;
-    while(cl) {
-        if (cl->socket == clsock) {
-            if (prev == NULL)
-                ServerClients = cl->next;
-            else
-                prev->next = cl->next;
-            break;
-        }
-        prev = cl;
-        cl = cl->next;
-    }
-
-    if (cl == NULL)
-        fuzzy_critical(fuzzy_sformat("Cannot find client for socket #%d", clsock));
-
-    free(cl);
 }
 
 // get or die
@@ -88,14 +62,20 @@ static FuzzyClient * _get_client_by_socket(int clsock)
 {
     FuzzyClient *cl;
 
-    cl = ServerClients;
-    while(cl) {
-        if (cl->socket == clsock)
-            return cl;
-        cl = cl->next;
-    }
+    fuzzy_list_findbyattr(FuzzyClient, ServerClients, socket, clsock, cl);
 
-    fuzzy_critical(fuzzy_sformat("Cannot find client for socket #%d", clsock));
+    if (cl == NULL)
+        fuzzy_critical(fuzzy_sformat("Cannot find client for socket #%d", clsock));
+    return cl;
+}
+
+static void _client_disconnected(int clsock)
+{
+    FuzzyClient *cl;
+
+    cl = _get_client_by_socket(clsock);
+    fuzzy_list_remove(FuzzyClient, ServerClients, cl);
+    free(cl);
 }
 
 static void _fuzzy_net_error(FuzzyMessage * msg, char * err, FuzzyClient * cl)

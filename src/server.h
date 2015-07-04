@@ -19,6 +19,7 @@
 #define __FUZZY_SERVER_H
 
 #include "fuzzy.h"
+#include "list.h"
 
 #define FUZZY_DEFAULT_SERVER_PORT 7557
 #define FUZZY_DEFAULT_SERVER_ADDRESS "127.0.0.1"
@@ -31,7 +32,7 @@ typedef struct FuzzyClient {
     int socket;
     bool auth;
 
-    struct FuzzyClient * next;
+    fuzzy_list_link(struct FuzzyClient);
 }FuzzyClient;
 
 void fuzzy_server_create(int port, char * keyout);

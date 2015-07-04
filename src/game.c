@@ -4,14 +4,10 @@
 
 FuzzyPlayer * fuzzy_player_by_id(FuzzyGame * game, ubyte id)
 {
-    FuzzyPlayer * plist = game->players;
+    FuzzyPlayer * player;
 
-    while(plist) {
-        if (plist->id == id)
-            return plist;
-        plist = plist->next;
-    }
-    return NULL;
+    fuzzy_list_findbyattr(FuzzyPlayer, game->players, id, id, player);
+    return player;
 }
 
 FuzzyGame * fuzzy_game_new(char * mapname)
@@ -32,14 +28,8 @@ FuzzyGame * fuzzy_game_new(char * mapname)
 
 void fuzzy_game_free(FuzzyGame * game)
 {
-    FuzzyPlayer *todel, *next;
-
-    next = game->players;
-    while(next) {
-        todel = next;
-        next = next->next;
-        fuzzy_player_free(game, todel);
-    }
+    #define _delete_callback(item) fuzzy_player_free(game, item)
+    fuzzy_list_map(FuzzyPlayer, game->players, _delete_callback);
 
     fuzzy_map_unload(game->map);
     free(game);
@@ -49,7 +39,7 @@ FuzzyChess * fuzzy_chess_add(FuzzyGame * game, FuzzyPlayer * pg, FuzzyFooes foo,
 {
     char * grp = GID_LINK;
     FuzzyArea * atkarea;
-    FuzzyChess * chess, * l;
+    FuzzyChess * chess;
 
     // Select foo asset
     switch (foo) {
@@ -65,18 +55,10 @@ FuzzyChess * fuzzy_chess_add(FuzzyGame * game, FuzzyPlayer * pg, FuzzyFooes foo,
     chess->y = y;
     chess->atkarea = atkarea;
     chess->owner = pg;
-    chess->next = NULL;
+    fuzzy_list_null(chess);
 
     fuzzy_sprite_create(game->map, FUZZY_LAYER_SPRITES, grp, x, y);
-
-    if (! pg->chess_l) {
-        pg->chess_l = chess;
-    } else {
-        l = pg->chess_l;
-        while (l->next)
-            l = l->next;
-        l->next = chess;
-    }
+    fuzzy_list_append(FuzzyChess, pg->chess_l, chess);
 
     return chess;
 }
@@ -89,7 +71,7 @@ FuzzyChess * fuzzy_chess_at(FuzzyGame * game, FuzzyPlayer * player, ulong x, ulo
     while(chess) {
         if (chess->x == x && chess->y==y)
             return chess;
-        chess = chess->next;
+        fuzzy_list_next(chess);
     }
 
     return NULL;
@@ -122,21 +104,9 @@ bool fuzzy_chess_move(FuzzyGame * game, FuzzyChess * chess, ulong nx, ulong ny)
 static void _fuzzy_chess_free(FuzzyGame * game, FuzzyChess * chess)
 {
     FuzzyPlayer * player = chess->owner;
-    FuzzyChess *cur, *prec;
 
     // remove from owner's list
-    prec = NULL;
-    cur = player->chess_l;
-    while(cur) {
-        if (cur == chess) {
-            if (! prec)
-                player->chess_l = cur->next;
-            else
-                prec->next = cur->next;
-        }
-        prec = cur;
-        cur = cur->next;
-    }
+    fuzzy_list_remove(FuzzyChess, player->chess_l, chess);
 
     // remove from map
     fuzzy_sprite_destroy(game->map, FUZZY_LAYER_SPRITES, chess->x, chess->y);
@@ -159,7 +129,7 @@ bool fuzzy_chess_attack(FuzzyGame * game, FuzzyChess * chess, ulong tx, ulong ty
             }
         }
 
-        player = player->next;
+        fuzzy_list_next(player);
     }
 
     return false;
@@ -217,8 +187,7 @@ bool fuzzy_chess_inside_target_area(FuzzyGame * game, FuzzyChess * chess, ulong 
 /* player related */
 FuzzyPlayer * fuzzy_player_new(FuzzyGame * game, FuzzyFuzzyPlayerType type, char * name)
 {
-    FuzzyPlayer * player, * p;
-    FuzzyPlayer ** plist = &game->players;
+    FuzzyPlayer * player;
 
     player = fuzzy_new(FuzzyPlayer);
     player->id = (game->_pctr)++;
@@ -226,47 +195,19 @@ FuzzyPlayer * fuzzy_player_new(FuzzyGame * game, FuzzyFuzzyPlayerType type, char
     player->type = type;
     player->soul_time = 0;
     player->soul_points = SOUL_POINTS_INITIAL;
-    player->next = NULL;
+    fuzzy_list_null(player);
     strncpy(player->name, name, sizeof(player->name));
 
-    if (! *plist)
-        *plist = player;
-    else {
-        p = *plist;
-        while(p->next)
-            p = p->next;
-        p->next = player;
-    }
-
+    fuzzy_list_append(FuzzyPlayer, game->players, player);
     return player;
 }
 
 /* also remove the player from game */
 void fuzzy_player_free(FuzzyGame * game, FuzzyPlayer * player)
 {
-    FuzzyChess *chess, *todel;
-    FuzzyPlayer *pl, *prec;
-
-    chess = player->chess_l;
-    while(chess) {
-        todel = chess;
-        chess = chess->next;
-        _fuzzy_chess_free(game, todel);
-    }
-
-    // remove from game
-    prec = NULL;
-    pl = game->players;
-    while(pl) {
-        if (pl->id == player->id) {
-            if (! prec)
-                game->players = pl->next;
-            else
-                prec->next = pl->next;
-        }
-        prec = pl;
-        pl = pl->next;
-    }
+    #define _free_callback(item) _fuzzy_chess_free(game, item)
+    fuzzy_list_map(FuzzyChess, player->chess_l, _free_callback);
+    fuzzy_list_remove(FuzzyPlayer, game->players, player);
 
     free(player);
 }

@@ -20,6 +20,7 @@
 
 #include <allegro5/allegro.h>
 #include "fuzzy.h"
+#include "list.h"
 
 /* Map properties names */
 #define FUZZY_TILEPROP_ANIMATION_GROUP "g"

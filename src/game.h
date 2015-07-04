@@ -15,9 +15,13 @@
  *
  */
 
+#ifndef __FUZZY_GAME_H
+#define __FUZZY_GAME_H
+
 #include "fuzzy.h"
 #include "area.h"
 #include "tiles.h"
+#include "list.h"
 
 /* Seconds before soul points boost */
 #define SOUL_TIME_INTERVAL 3.0
@@ -40,7 +44,7 @@ typedef struct FuzzyChess {
     ulong y;
     FuzzyArea * atkarea;
     struct FuzzyPlayer * owner;
-    struct FuzzyChess * next;
+    fuzzy_list_link(struct FuzzyChess);
 }FuzzyChess;
 
 typedef struct FuzzyPlayer {
@@ -53,7 +57,7 @@ typedef struct FuzzyPlayer {
     double soul_time;
     uint soul_points;
     FuzzyChess * chess_l;
-    struct FuzzyPlayer * next;
+    fuzzy_list_link(struct FuzzyPlayer);
 }FuzzyPlayer;
 
 typedef struct FuzzyGame {
@@ -86,3 +90,5 @@ void fuzzy_chess_hide_attack_area(FuzzyGame * game, FuzzyChess * chess);
 bool fuzzy_chess_inside_target_area(FuzzyGame * game, FuzzyChess * chess, ulong tx, ulong ty);
 bool fuzzy_chess_local_attack(FuzzyGame * game, FuzzyPlayer * player, FuzzyChess * chess, ulong tx, ulong ty);
 bool fuzzy_chess_local_move(FuzzyGame * game, FuzzyPlayer * player, FuzzyChess * chess, ulong nx, ulong ny);
+
+#endif
