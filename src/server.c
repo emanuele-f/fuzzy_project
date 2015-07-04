@@ -115,6 +115,17 @@ static FuzzyRoom * _new_room(FuzzyClient * owner, char * rname)
     return room;
 }
 
+static void _room_broadcast(FuzzyRoom * room, FuzzyMessage * msg)
+{
+    FuzzyClient * cl;
+
+    cl = room->clients;
+    while(cl) {
+        fuzzy_message_send(cl->socket, msg);
+        fuzzy_list_next(cl);
+    }
+}
+
 static void _fuzzy_net_error(FuzzyMessage * msg, char * err, FuzzyClient * cl)
 {
 
@@ -172,6 +183,23 @@ static void _fuzzy_process_message(FuzzyMessage * msg, FuzzyClient * client)
             fuzzy_message_push32(msg, room->id);
             fuzzy_message_push8(msg, FUZZY_NETCODE_OK);
             fuzzy_message_send(client->socket, msg);
+            break;
+
+        case FUZZY_COMMAND_GAME_START:
+            if (client->room == NULL) {
+                _fuzzy_net_error(msg, "Client is not inside a room", client);
+                return;
+            }
+            if (client->room->owner != client) {
+                _fuzzy_net_error(msg, "Client is the room owner", client);
+                return;
+            }
+            _fuzzy_net_ok(msg, client);
+            fuzzy_message_clear(msg);
+            fuzzy_message_push8(msg, FUZZY_COMMAND_GAME_START);
+
+            /* notify all about game start */
+            _room_broadcast(client->room, msg);
             break;
 
         case FUZZY_COMMAND_GAME_JOIN:

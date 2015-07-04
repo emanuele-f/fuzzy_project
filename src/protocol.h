@@ -66,5 +66,6 @@ bool fuzzy_protocol_server_shutdown(int svsock, FuzzyMessage * msg);
 bool fuzzy_protocol_authenticate(int svsock, FuzzyMessage * msg, char * key);
 ulong fuzzy_protocol_create_room(int svsock, FuzzyMessage * msg, char * name);
 bool fuzzy_protocol_join(int svsock, FuzzyMessage * msg, ulong roomid);
+bool fuzzy_protocol_game_start(int svsock, FuzzyMessage * msg);
 
 #endif

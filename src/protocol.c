@@ -74,6 +74,10 @@ bool fuzzy_protocol_decode_message(FuzzyMessage * msg, FuzzyCommand * cmd)
 
             cmd->data.room.id = fuzzy_message_pop32(msg);
             break;
+        case FUZZY_COMMAND_GAME_START:
+            if (msg->buflen != 1)
+                _fuzzy_bad_message(BAD_MSG);
+            break;
         default:
             _fuzzy_bad_message(fuzzy_sformat(BAD_MSG "unknown command type '0x%02x'", cmd->type));
     }
@@ -117,6 +121,14 @@ bool fuzzy_protocol_join(int svsock, FuzzyMessage * msg, ulong roomid)
 {
     fuzzy_message_push32(msg, roomid);
     fuzzy_message_push8(msg, FUZZY_COMMAND_GAME_JOIN);
+    fuzzy_message_send(svsock, msg);
+
+    return _check_return_netcode(msg, svsock);
+}
+
+bool fuzzy_protocol_game_start(int svsock, FuzzyMessage * msg)
+{
+    fuzzy_message_push8(msg, FUZZY_COMMAND_GAME_START);
     fuzzy_message_send(svsock, msg);
 
     return _check_return_netcode(msg, svsock);
