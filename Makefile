@@ -68,7 +68,7 @@ debug:
 	make -e main
 	make -e server
 
-tests: export CFLAGS += -fprofile-arcs -ftest-coverage -DFUZZY_DATA_FOLDER=\"../../data\" -DFUZZY_SUPPRESS_DEBUG
+tests: export CFLAGS += -g -DDEBUG -fprofile-arcs -ftest-coverage -DFUZZY_DATA_FOLDER=\"../../data\" -DFUZZY_SUPPRESS_DEBUG
 tests: export LDLIBS += -lgcov
 tests:
 	make -e clean
