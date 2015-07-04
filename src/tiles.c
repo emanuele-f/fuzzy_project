@@ -551,6 +551,7 @@ static struct _AnimatedSprite * _new_sprite(char * group)
     sp->curframe = 0;
     sp->difftime = 0;
     fuzzy_list_null(sp);
+    return sp;
 }
 
 /** Load frames information for an animation group. */
