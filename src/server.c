@@ -78,7 +78,6 @@ static void _kick_all_out(FuzzyRoom * room)
     // TODO implement
 }
 
-// assert is not owner
 static void _room_client_disconnected(FuzzyClient * client)
 {
     // TODO notify disconnection
@@ -108,7 +107,7 @@ static FuzzyRoom * _new_room(FuzzyClient * owner, char * rname)
     room->id = ServerRoomCtr++;
     strncpy(room->name, rname, FUZZY_NET_ROOM_LEN);
     room->owner = owner;
-    room->clients = NULL;
+    room->clients = owner;
 
     owner->room = room;
     fuzzy_list_prepend(ServerRooms, room);
