@@ -1,7 +1,6 @@
-- Separate server from client
+- Implement server side game routines
 - Map metadata to describe player slots
-- Migrate code to use a linked list library
-- Add test module for area.c
+- Add test modules
 - Animation module to interact either with map tiles or with primitives
 - Check map bounds before perform chess logic
 - Implement path hot points
